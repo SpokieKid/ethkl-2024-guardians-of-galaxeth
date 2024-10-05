@@ -89,6 +89,10 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     mapping(uint256 => address) public playerAddresses;
     uint256 public playerCount;
 
+    // 在 GuardianOfGalaxETH.sol 中添加
+    mapping(address => uint256) public userVotingPower;
+    mapping(uint256 => uint256) public artifactVotes;
+
     constructor() Ownable(msg.sender) {
     }
 
@@ -458,4 +462,31 @@ function getPlayerCommunityId(address _player) public view returns (bytes32) {
 function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOwner {
     playerCommunity[_player] = _communityId;
 }
+
+    function getUserVotingPower(address user) public view returns (uint256) {
+        return userVotingPower[user];
+    }
+
+    function submitVotes(address user, uint256[] memory artifactIds, uint256[] memory votes) public {
+        require(artifactIds.length == votes.length, "Invalid input");
+        uint256 totalCost = 0;
+        for (uint256 i = 0; i < votes.length; i++) {
+            totalCost += votes[i] * votes[i];
+        }
+        require(userVotingPower[user] >= totalCost, "Not enough voting power");
+        
+        userVotingPower[user] -= totalCost;
+        for (uint256 i = 0; i < votes.length; i++) {
+            artifactVotes[artifactIds[i]] += votes[i] * votes[i];
+        }
+    }
+
+    function tallyVotes() public view returns (uint256 winningArtifactId, uint256 maxVotes) {
+        for (uint256 i = 0; i < artifacts.length; i++) {
+            if (artifactVotes[artifacts[i].id] > maxVotes) {
+                maxVotes = artifactVotes[artifacts[i].id];
+                winningArtifactId = artifacts[i].id;
+            }
+        }
+    }
 }
