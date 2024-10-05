@@ -34,6 +34,7 @@ export default function Home() {
   const [artifacts, setArtifacts] = useState([]);
   const [isJoining, setIsJoining] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const handleWorldIDVerification = () => {
     setIsWorldIDVerified(true);
@@ -142,6 +143,11 @@ export default function Home() {
       const playerInfo = await contract.players(addressToUse);
       if (playerInfo.isActive) {
         setMinerals(playerInfo.gethBalance.toNumber());
+        const lastCollectionTime = await contract.lastCollectionTime(addressToUse);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const cooldownTime = await contract.COLLECTION_COOLDOWN();
+        const remainingCooldown = Math.max(0, lastCollectionTime.add(cooldownTime).sub(currentTime).toNumber());
+        setCooldownRemaining(remainingCooldown);
         // Add more state updates here as needed
       } else {
         console.log("Player not active in the game");
@@ -150,10 +156,16 @@ export default function Home() {
       console.error("Failed to update game state:", error);
       // Handle the error gracefully, perhaps set some default state
       setMinerals(0);
+      setCooldownRemaining(0);
     }
   };
 
   const handleCollectMinerals = async () => {
+    if (cooldownRemaining > 0) {
+      alert(`You need to wait ${cooldownRemaining} seconds before collecting again.`);
+      return;
+    }
+
     const contract = getContract();
     try {
       await contract.collectMinerals();
@@ -244,6 +256,18 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldownRemaining > 0) {
+      timer = setInterval(() => {
+        setCooldownRemaining((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [cooldownRemaining]);
+
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-4">
       {!isWorldIDVerified ? (
@@ -263,7 +287,11 @@ export default function Home() {
           <h1 className="text-4xl font-bold mb-8">Guardians of GalaxETH</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
             <div className="space-y-8">
-              <MineralCollection minerals={minerals} onCollect={handleCollectMinerals} />
+              <MineralCollection
+                minerals={minerals}
+                onCollect={handleCollectMinerals}
+                cooldownRemaining={cooldownRemaining}
+              />
               <AllianceFormation
                 onProposeAlliance={handleProposeAlliance}
                 onAcceptAlliance={handleAcceptAlliance}
