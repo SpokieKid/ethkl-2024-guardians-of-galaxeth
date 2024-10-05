@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import Spaceship from './Spaceship';
+import Image from 'next/image';
+import gethIcon from '../public/geth-icon.png'; // 确保您已将图像文件添加到项目中
 
 interface CollectProps {
   userIdentifier: string;
@@ -97,9 +99,16 @@ export default function Collect({
       {geth.map((geth, index) => (
         <div 
           key={index} 
-          className="absolute w-4 h-4 bg-yellow-400 rounded-full"
-          style={{ left: geth.x, top: geth.y }}
-        />
+          className="absolute"
+          style={{ left: geth.x, top: geth.y, transform: 'translate(-50%, -50%)' }}
+        >
+          <Image
+            src={gethIcon}
+            alt="GETH"
+            width={32}  // 调整大小以适应您的需求
+            height={32} // 调整大小以适应您的需求
+          />
+        </div>
       ))}
       <Spaceship position={spaceshipPosition} />
     </div>
