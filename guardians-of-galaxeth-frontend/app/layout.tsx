@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Pixelify_Sans, Inter, Roboto_Mono } from 'next/font/google';
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const pixelifySans = Pixelify_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-pixelify-sans',
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
 });
 
 export const metadata: Metadata = {
@@ -26,11 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}
+        className={`${pixelifySans.variable} ${inter.variable} ${robotoMono.variable} font-sans antialiased bg-deep-space-blue text-neon-yellow min-h-screen`}
       >
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );
