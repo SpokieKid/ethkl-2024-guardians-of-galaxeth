@@ -21,6 +21,7 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
   const [reputation, setReputation] = useState(0);
   const [gethBalance, setGethBalance] = useState(0);
   const router = useRouter();
+  const [allies, setAllies] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchPlayerInfo = async () => {
@@ -45,6 +46,25 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
     };
     fetchPlayerInfo();
   }, [contract, userIdentifier, setPendingGETH]);
+
+  useEffect(() => {
+    const fetchAllies = async () => {
+      if (contract && userIdentifier) {
+        try {
+          const allyCount = await contract.getAllyCount(userIdentifier);
+          const alliesData = [];
+          for (let i = 0; i < allyCount.toNumber(); i++) {
+            const ally = await contract.getAlly(userIdentifier, i);
+            alliesData.push(ally);
+          }
+          setAllies(alliesData);
+        } catch (error) {
+          console.error("Error fetching allies:", error);
+        }
+      }
+    };
+    fetchAllies();
+  }, [contract, userIdentifier]);
 
   const handleStageChange = (newStage: string) => {
     setStage(newStage);
@@ -118,6 +138,7 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
             setPendingGETH={setPendingGETH}
             gethBalance={gethBalance}
             setGethBalance={setGethBalance}
+            allies={allies} // Pass the allies prop here
           />
         )}
         {stage === 'alliance' && <Alliance userIdentifier={userIdentifier} contract={contract} />}
