@@ -932,6 +932,25 @@ export const contractABI = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "_player",
+        "type": "address"
+      }
+    ],
+    "name": "getPlayerCommunityId",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_player1",
         "type": "address"
       },
@@ -1166,6 +1185,24 @@ export const contractABI = [
   {
     "inputs": [],
     "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_player",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_communityId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "setPlayerCommunity",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

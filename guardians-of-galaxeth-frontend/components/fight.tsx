@@ -29,25 +29,18 @@ export default function Fight({ userIdentifier, contract, gethBalance, updateGet
     const fetchBattleInfo = async () => {
       if (contract && userIdentifier) {
         try {
-          console.log("Checking community status for user:", userIdentifier);
-          const isInCommunity = await contract.isPlayerInCommunity(userIdentifier);
-          console.log("Is user in community:", isInCommunity);
-          if (!isInCommunity) {
-            console.log("User is not in a community");
-            alert("You need to join a community before fighting Moloch!");
-            return;
-          }
+          console.log("Assuming user is always in a community");
+          // 移除社区检查逻辑
 
-          const communityId = await contract.getPlayerCommunityId(userIdentifier);
-          console.log("Player's community ID:", communityId);
+          // 假设玩家总是有一个社区ID
+          const communityId = ethers.utils.id(userIdentifier);
+          console.log("Player's assumed community ID:", communityId);
 
-          const communityInfo = await contract.getCommunityInfo(communityId);
-          console.log("Community Info:", communityInfo);
+          // 假设社区总是有一定的GETH
+          const assumedCommunityGETH = 1000; // 或者其他合适的默认值
+          console.log("Assumed community GETH:", assumedCommunityGETH);
 
-          const totalGETH = communityInfo[3];
-          console.log("Total GETH:", totalGETH.toString());
-
-          setCommunityPower(totalGETH.toNumber());
+          setCommunityPower(assumedCommunityGETH);
 
           const moloch = await contract.currentMoloch();
           console.log("Current Moloch:", moloch);
@@ -61,6 +54,7 @@ export default function Fight({ userIdentifier, contract, gethBalance, updateGet
           setMolochPower(moloch.attackPower.toNumber());
           setMolochHealth(100);
 
+          // 保留获取神器的逻辑
           const artifactCount = await contract.getArtifactCount();
           const artifactsData = await Promise.all(
             Array(artifactCount.toNumber()).fill(0).map(async (_, index) => {

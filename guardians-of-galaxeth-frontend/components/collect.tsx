@@ -14,7 +14,7 @@ interface CollectProps {
   setPendingGETH: (value: number | ((prevValue: number) => number)) => void;
   gethBalance: number;
   setGethBalance: (value: number) => void;
-  allies: any[]; // 假设我们从父组件传入盟友信息
+  allies?: any[]; // Make allies optional
 }
 
 export default function Collect({ 
@@ -32,7 +32,7 @@ export default function Collect({
 
   useEffect(() => {
     const generateObstaclesNearAllies = async () => {
-      if (contract && allies.length > 0) {
+      if (contract && allies && allies.length > 0) {
         const newObstacles = [];
         for (const ally of allies) {
           try {
@@ -48,6 +48,13 @@ export default function Collect({
           }
         }
         setObstacles(newObstacles);
+      } else {
+        // If there are no allies or contract, generate random obstacles
+        const randomObstacles = Array(5).fill(null).map(() => ({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight
+        }));
+        setObstacles(randomObstacles);
       }
     };
 
@@ -133,7 +140,7 @@ export default function Collect({
           <Image
             src={gethIcon}
             alt="GETH"
-            width={32}  // 调整大小以适应您的需求
+            width={32}  // 调整大小以适应的需求
             height={32} // 调整大小以适应您的需求
           />
         </div>
