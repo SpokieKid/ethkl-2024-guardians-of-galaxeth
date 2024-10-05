@@ -901,7 +901,7 @@ const contractABI = [
     }
   ];
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '';
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
 export function getContract() {
   if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {

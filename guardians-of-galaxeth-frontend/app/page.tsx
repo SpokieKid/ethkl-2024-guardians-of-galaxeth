@@ -8,7 +8,7 @@ import MineralCollection from '../components/MineralCollection';
 import AllianceFormation from '../components/AllianceFormation';
 import CommunityDashboard from '../components/CommunityDashboard';
 import MolochBattle from '../components/MolochBattle';
-import { getContract, ERC20_ABI } from '../utils/contracts';
+import { getContract } from '../utils/contracts';
 
 const joinGame = async (signer: ethers.Signer) => {
   const contract = getContract();
