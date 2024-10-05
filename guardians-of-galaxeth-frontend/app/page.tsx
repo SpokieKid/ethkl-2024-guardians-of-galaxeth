@@ -35,6 +35,8 @@ export default function Home() {
   const [isJoining, setIsJoining] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [lastUpdateTime, setLastUpdateTime] = useState(0);
+  const [mineralRate, setMineralRate] = useState(1); // 1 GETH per second
 
   const handleWorldIDVerification = () => {
     setIsWorldIDVerified(true);
@@ -142,12 +144,11 @@ export default function Home() {
     try {
       const playerInfo = await contract.players(addressToUse);
       if (playerInfo.isActive) {
-        setMinerals(playerInfo.gethBalance.toNumber());
-        const lastCollectionTime = await contract.lastCollectionTime(addressToUse);
-        const currentTime = Math.floor(Date.now() / 1000);
-        const cooldownTime = await contract.COLLECTION_COOLDOWN();
-        const remainingCooldown = Math.max(0, lastCollectionTime.add(cooldownTime).sub(currentTime).toNumber());
-        setCooldownRemaining(remainingCooldown);
+        const currentMinerals = await contract.getMinerals(addressToUse);
+        setMinerals(currentMinerals.toNumber());
+        setLastUpdateTime(Math.floor(Date.now() / 1000));
+        const rate = await contract.MINERAL_RATE();
+        setMineralRate(rate.toNumber() / 1e18); // Convert from wei to GETH
         // Add more state updates here as needed
       } else {
         console.log("Player not active in the game");
@@ -156,7 +157,6 @@ export default function Home() {
       console.error("Failed to update game state:", error);
       // Handle the error gracefully, perhaps set some default state
       setMinerals(0);
-      setCooldownRemaining(0);
     }
   };
 
@@ -267,6 +267,21 @@ export default function Home() {
       if (timer) clearInterval(timer);
     };
   }, [cooldownRemaining]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoggedIn && address) {
+      timer = setInterval(() => {
+        const now = Math.floor(Date.now() / 1000);
+        const elapsedTime = now - lastUpdateTime;
+        setMinerals(prev => prev + elapsedTime * mineralRate);
+        setLastUpdateTime(now);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isLoggedIn, address, lastUpdateTime, mineralRate]);
 
   return (
     <div className="relative min-h-screen bg-gray-900 text-white p-4">

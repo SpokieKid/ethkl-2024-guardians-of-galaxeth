@@ -345,6 +345,19 @@ const contractABI = [
     },
     {
       "inputs": [],
+      "name": "MINERAL_RATE",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "MIN_COMMUNITY_SIZE",
       "outputs": [
         {
@@ -687,6 +700,25 @@ const contractABI = [
       "inputs": [
         {
           "internalType": "address",
+          "name": "player",
+          "type": "address"
+        }
+      ],
+      "name": "getMinerals",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "_player1",
           "type": "address"
         },
@@ -723,6 +755,25 @@ const contractABI = [
         }
       ],
       "name": "lastCollectionTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "lastUpdateTime",
       "outputs": [
         {
           "internalType": "uint256",
@@ -872,6 +923,19 @@ const contractABI = [
         }
       ],
       "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "player",
+          "type": "address"
+        }
+      ],
+      "name": "updateMinerals",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

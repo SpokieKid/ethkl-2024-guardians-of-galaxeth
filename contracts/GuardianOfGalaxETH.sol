@@ -50,6 +50,8 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     Moloch public currentMoloch;
     Artifact[] public artifacts;
     mapping(address => uint256) public lastCollectionTime;
+    uint256 public constant MINERAL_RATE = 1 ether; // 1 GETH per second
+    mapping(address => uint256) public lastUpdateTime;
 
     uint256 public constant COLLECTION_COOLDOWN = 1 hours;
     uint256 public constant BASE_COLLECTION_AMOUNT = 100; // 基础收集量
@@ -76,11 +78,8 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     }
 
     function joinGame() external payable nonReentrant {
-        require(msg.value >= MIN_STAKE, "Insufficient stake");
         require(!players[msg.sender].isActive, "Player already in game");
-
-        // Add more detailed checks here
-        require(address(this).balance + msg.value >= address(this).balance, "Overflow check failed");
+        require(msg.value >= MIN_STAKE, "Insufficient stake");
 
         players[msg.sender] = Player({
             stakedAmount: msg.value,
@@ -88,8 +87,24 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
             reputation: 0,
             isActive: true
         });
+        lastUpdateTime[msg.sender] = block.timestamp;
 
         emit PlayerJoined(msg.sender, msg.value);
+    }
+
+    function updateMinerals(address player) public {
+        require(players[player].isActive, "Player not in game");
+        uint256 elapsedTime = block.timestamp - lastUpdateTime[player];
+        uint256 newMinerals = elapsedTime * MINERAL_RATE / 1 ether;
+        players[player].gethBalance += newMinerals;
+        lastUpdateTime[player] = block.timestamp;
+    }
+
+    function getMinerals(address player) public view returns (uint256) {
+        if (!players[player].isActive) return 0;
+        uint256 elapsedTime = block.timestamp - lastUpdateTime[player];
+        uint256 newMinerals = elapsedTime * MINERAL_RATE / 1 ether;
+        return players[player].gethBalance + newMinerals;
     }
 
     // TODO: Implement collect, alliance, and fight mechanics
