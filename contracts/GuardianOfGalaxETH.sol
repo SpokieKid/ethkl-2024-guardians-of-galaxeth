@@ -5,13 +5,16 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
+contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     struct Player {
         uint256 stakedAmount;
         uint256 gethBalance;
         uint256 reputation;
         bool isActive;
+        uint256 pendingMinerals; // 新增：待收集的矿物数量
     }
+    mapping(address => uint256) public lastUpdateTime;
+    uint256 public constant MINERAL_RATE = uint256(1 ether) / uint256(1 hours); // 1 GETH per hour
 
     struct Alliance {
         address[] members;
@@ -50,8 +53,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     Moloch public currentMoloch;
     Artifact[] public artifacts;
     mapping(address => uint256) public lastCollectionTime;
-    uint256 public constant MINERAL_RATE = 1 ether; // 1 GETH per second
-    mapping(address => uint256) public lastUpdateTime;
+    uint256 public constant MINERAL_PER_COLLECTION = 1 ether; // 每次收集获得 1 GETH
 
     uint256 public constant COLLECTION_COOLDOWN = 1 hours;
     uint256 public constant BASE_COLLECTION_AMOUNT = 100; // 基础收集量
@@ -85,9 +87,9 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
             stakedAmount: msg.value,
             gethBalance: 0,
             reputation: 0,
-            isActive: true
+            isActive: true,
+            pendingMinerals: 0 // 添加这个字段
         });
-        lastUpdateTime[msg.sender] = block.timestamp;
 
         emit PlayerJoined(msg.sender, msg.value);
     }
@@ -129,13 +131,16 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     function collectMinerals() external nonReentrant {
         Player storage player = players[msg.sender];
         require(player.isActive, "Player not in game");
-        require(block.timestamp >= lastCollectionTime[msg.sender] + COLLECTION_COOLDOWN, "Collection cooldown not met");
 
-        uint256 collectionAmount = calculateCollectionAmount(player.stakedAmount);
+        uint256 collectionAmount = getMinerals(msg.sender) - player.gethBalance;
         player.gethBalance += collectionAmount;
-        lastCollectionTime[msg.sender] = block.timestamp;
+        lastUpdateTime[msg.sender] = block.timestamp;
 
         emit MineralsCollected(msg.sender, collectionAmount);
+    }
+
+    function addPendingMinerals(address _player, uint256 _count) external onlyOwner {
+        players[_player].pendingMinerals += _count;
     }
 
     function calculateCollectionAmount(uint256 stakedAmount) internal pure returns (uint256) {
@@ -353,6 +358,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         Community storage community = communities[_communityId];
         return (community.members, community.formationTime, community.totalStake);
     }
+
 
     // Additional functions will be implemented here
 }

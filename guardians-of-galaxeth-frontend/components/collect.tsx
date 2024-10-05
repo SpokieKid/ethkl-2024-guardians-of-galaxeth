@@ -2,55 +2,49 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import Spaceship from './Spaceship';
 
 interface CollectProps {
   userIdentifier: string;
   contract: ethers.Contract | null;
+  pendingMinerals: number;
+  setPendingMinerals: (value: number) => void;
 }
 
-export default function Collect({ userIdentifier, contract }: CollectProps) {
+export default function Collect({ userIdentifier, contract, pendingMinerals, setPendingMinerals }: CollectProps) {
   const [spaceshipPosition, setSpaceshipPosition] = useState({ x: 0, y: 0 });
-  const [minerals, setMinerals] = useState(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [minerals, setMinerals] = useState<{ x: number; y: number }[]>([]);
 
   useEffect(() => {
-    const fetchPlayerInfo = async () => {
-      if (contract && userIdentifier) {
-        try {
-          const playerInfo = await contract.players(userIdentifier);
-          setMinerals(ethers.utils.formatEther(playerInfo.gethBalance));
-          const lastCollectTime = playerInfo.lastCollectTime.toNumber();
-          const currentTime = Math.floor(Date.now() / 1000);
-          const cooldownTime = 60; // 假设冷却时间为60秒
-          const remainingCooldown = Math.max(0, cooldownTime - (currentTime - lastCollectTime));
-          setCooldownRemaining(remainingCooldown);
-        } catch (error) {
-          console.error("Error fetching player info:", error);
-        }
+    // 生成随机矿物
+    const generateMinerals = () => {
+      const newMinerals = [];
+      for (let i = 0; i < 5; i++) {
+        newMinerals.push({
+          x: Math.random() * window.innerWidth,
+          y: Math.random() * window.innerHeight,
+        });
       }
+      setMinerals(newMinerals);
     };
-    fetchPlayerInfo();
 
-    const timer = setInterval(fetchPlayerInfo, 5000); // 每5秒更新一次
-    return () => clearInterval(timer);
-  }, [contract, userIdentifier]);
+    generateMinerals();
+    const interval = setInterval(generateMinerals, 10000); // 每10秒生成新的矿物
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       setSpaceshipPosition(prev => {
+        let newX = prev.x;
+        let newY = prev.y;
         switch (e.key) {
-          case 'ArrowUp':
-            return { ...prev, y: Math.max(0, prev.y - 10) };
-          case 'ArrowDown':
-            return { ...prev, y: Math.min(window.innerHeight - 50, prev.y + 10) };
-          case 'ArrowLeft':
-            return { ...prev, x: Math.max(0, prev.x - 10) };
-          case 'ArrowRight':
-            return { ...prev, x: Math.min(window.innerWidth - 50, prev.x + 10) };
-          default:
-            return prev;
+          case 'ArrowUp': newY = Math.max(0, prev.y - 10); break;
+          case 'ArrowDown': newY = Math.min(window.innerHeight, prev.y + 10); break;
+          case 'ArrowLeft': newX = Math.max(0, prev.x - 10); break;
+          case 'ArrowRight': newX = Math.min(window.innerWidth, prev.x + 10); break;
         }
+        return { x: newX, y: newY };
       });
     };
 
@@ -58,37 +52,47 @@ export default function Collect({ userIdentifier, contract }: CollectProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
-  const handleCollectMinerals = async () => {
-    if (cooldownRemaining > 0 || !contract) {
-      return;
-    }
+  useEffect(() => {
+    // 检查是否收集到矿物
+    const collectMinerals = () => {
+      const collectedMinerals = minerals.filter(mineral => 
+        Math.abs(mineral.x - spaceshipPosition.x) < 20 && 
+        Math.abs(mineral.y - spaceshipPosition.y) < 20
+      );
+      if (collectedMinerals.length > 0) {
+        setPendingMinerals(prev => prev + collectedMinerals.length);
+        setMinerals(prev => prev.filter(mineral => !collectedMinerals.includes(mineral)));
+      }
+    };
 
-    try {
-      const tx = await contract.collectMinerals();
-      await tx.wait();
-      const playerInfo = await contract.players(userIdentifier);
-      setMinerals(ethers.utils.formatEther(playerInfo.gethBalance));
-      setCooldownRemaining(60); // 重置冷却时间
-    } catch (error) {
-      console.error("Error collecting minerals:", error);
-      alert("Failed to collect minerals. Please try again.");
+    collectMinerals();
+  }, [spaceshipPosition, minerals, setPendingMinerals]);
+
+  const handleCollectMinerals = async () => {
+    if (contract) {
+      try {
+        const tx = await contract.collectMinerals();
+        await tx.wait();
+        setPendingMinerals(0);
+      } catch (error) {
+        console.error("Error collecting minerals:", error);
+      }
     }
   };
 
   return (
-    <div className="relative w-full h-full bg-deep-space-blue">
-      <div className="absolute top-4 left-4 text-neon-yellow">
-        <p>Minerals: {minerals} GETH</p>
-        <p>Cooldown: {cooldownRemaining}s</p>
-      </div>
-      <Spaceship position={spaceshipPosition} />
-      <button
-        onClick={handleCollectMinerals}
-        className="absolute bottom-4 right-4 bg-neon-yellow text-deep-space-blue px-4 py-2 rounded"
-        disabled={cooldownRemaining > 0}
-      >
-        Collect Minerals
-      </button>
+    <div className="relative w-full h-full">
+      {minerals.map((mineral, index) => (
+        <div 
+          key={index} 
+          className="absolute w-4 h-4 bg-yellow-400 rounded-full"
+          style={{ left: mineral.x, top: mineral.y }}
+        />
+      ))}
+      <div 
+        className="absolute w-10 h-10 bg-blue-500"
+        style={{ left: spaceshipPosition.x, top: spaceshipPosition.y }}
+      />
     </div>
   );
 }

@@ -26,24 +26,21 @@ describe("GuardianOfGalaxETH", function () {
       expect(playerInfo.gethBalance).to.be.gt(0);
     });
 
-    it("Should not allow collection before cooldown period", async function () {
+    it("Should allow player to collect minerals multiple times", async function () {
       await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      
       await guardianOfGalaxETH.connect(player).collectMinerals();
-
-      await expect(guardianOfGalaxETH.connect(player).collectMinerals())
-        .to.be.revertedWith("Collection cooldown not met");
-    });
-
-    it("Should allow collection after cooldown period", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-
+      const firstCollection = await guardianOfGalaxETH.players(player.address);
+      
       await time.increase(3600); // Increase time by 1 hour
-
+      
       await guardianOfGalaxETH.connect(player).collectMinerals();
-      const playerInfo = await guardianOfGalaxETH.players(player.address);
-      expect(playerInfo.gethBalance).to.be.gt(100); // Should be greater than BASE_COLLECTION_AMOUNT
+      const secondCollection = await guardianOfGalaxETH.players(player.address);
+      
+      expect(secondCollection.gethBalance).to.be.gt(firstCollection.gethBalance);
     });
+
+    // 删除 "Should increase minerals over time" 测试
   });
 
   describe("Alliance Mechanism", function () {

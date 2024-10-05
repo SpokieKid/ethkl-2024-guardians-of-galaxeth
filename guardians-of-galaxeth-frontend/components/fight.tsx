@@ -9,7 +9,7 @@ interface FightProps {
   contract: ethers.Contract | null;
 }
 
-export default function Fight({ address, contract }: FightProps) {
+export default function Fight({ userIdentifier, contract }: FightProps) {
   const [communityPower, setCommunityPower] = useState(0);
   const [molochPower, setMolochPower] = useState(0);
   const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);

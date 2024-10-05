@@ -1,24 +1,39 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import { IDKitWidget, VerificationLevel, ISuccessResult } from '@worldcoin/idkit';
+import { ethers } from 'ethers';
 
 type LoginProps = {
-  onLoginSuccess: (address: string) => void;
+  onLoginSuccess: (worldIdHash: string, walletAddress: string) => void;
 };
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const [worldIdHash, setWorldIdHash] = useState<string | null>(null);
+
   const handleVerify = async (proof: ISuccessResult) => {
     console.log("Proof received:", proof);
     // TODO: Implement server-side verification
     return true;
   };
 
-  const handleVerificationSuccess = (result: any) => {
-    const playerAddress = result.nullifier_hash;  // 使用 nullifier_hash 作为地址
-    if (onLoginSuccess) {
-      onLoginSuccess(playerAddress);
+  const handleVerificationSuccess = async (result: any) => {
+    const hash = result.nullifier_hash;
+    setWorldIdHash(hash);
+    
+    // Automatically connect wallet after WorldID verification
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const address = await signer.getAddress();
+        onLoginSuccess(hash, address);
+      } catch (error) {
+        console.error('Failed to connect wallet:', error);
+        alert('Failed to connect wallet. Please try again.');
+      }
     } else {
-      console.error("onLoginSuccess is not defined");
+      alert('Please install MetaMask to use this app');
     }
   };
 
@@ -31,7 +46,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         app_id="app_staging_0cad0a5d4c2f7c2a7d6f1c7c5f1e8d3b"
         action="login"
         verification_level={VerificationLevel.Device}
-        // handleVerify={verifyProof}
         onSuccess={handleVerificationSuccess}
       >
         {({ open }) => (
@@ -39,7 +53,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             onClick={open}
             className="bg-neon-yellow text-deep-space-blue font-bold py-3 px-6 rounded-lg text-xl hover:bg-yellow-400 transition duration-300"
           >
-            Verify with World ID
+            Login with World ID
           </button>
         )}
       </IDKitWidget>

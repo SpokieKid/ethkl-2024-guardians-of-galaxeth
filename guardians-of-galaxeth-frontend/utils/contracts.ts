@@ -345,6 +345,19 @@ const contractABI = [
     },
     {
       "inputs": [],
+      "name": "MINERAL_PER_COLLECTION",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "MINERAL_RATE",
       "outputs": [
         {
@@ -435,6 +448,24 @@ const contractABI = [
         }
       ],
       "name": "addArtifact",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_player",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_count",
+          "type": "uint256"
+        }
+      ],
+      "name": "addPendingMinerals",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -876,6 +907,11 @@ const contractABI = [
           "internalType": "bool",
           "name": "isActive",
           "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "pendingMinerals",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
