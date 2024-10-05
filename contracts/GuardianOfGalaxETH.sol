@@ -201,7 +201,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
 
     function formCommunity(address[] memory _members) external nonReentrant {
         require(_members.length >= MIN_COMMUNITY_SIZE, "Community size too small");
-        bytes32 communityId = keccak256(abi.encodePacked(_members));
+        bytes32 communityId = keccak256(abi.encode(_members));
         require(communities[communityId].formationTime == 0, "Community already exists");
 
         uint256 totalStake = 0;
@@ -235,7 +235,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     }
 
     function voteForArtifact(bytes32 _communityId, uint256 _artifactIndex, uint256 _voteCount) external nonReentrant {
-        require(communityVotingEndTime[_communityId] > block.timestamp, "Voting period has ended or not started");
+        require(communityVotingEndTime[_communityId] != 0, "Voting has not started");
         require(_artifactIndex < artifacts.length, "Invalid artifact index");
         Community storage community = communities[_communityId];
         require(isCommunitymember(_communityId, msg.sender), "Not a community member");
@@ -285,13 +285,13 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     }
 
     function startVoting(bytes32 _communityId) external {
-        require(communities[_communityId].members.length > 0, "Community does not exist");
+        Community storage community = communities[_communityId];
+        require(community.members.length > 0, "Community does not exist");
         require(communityVotingEndTime[_communityId] == 0, "Voting already started");
-        communityVotingEndTime[_communityId] = block.timestamp + VOTING_PERIOD;
+        communityVotingEndTime[_communityId] = 1; // Set to 1 to indicate voting has started
     }
 
     function endVoting(bytes32 _communityId) external {
-        require(block.timestamp >= communityVotingEndTime[_communityId], "Voting period not ended");
         require(communityVotingEndTime[_communityId] != 0, "Voting never started");
 
         uint256[] memory voteCounts = new uint256[](artifacts.length);
@@ -324,6 +324,16 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
             }
         }
         return false;
+    }
+
+    function getCommunityMember(bytes32 _communityId, uint256 _index) external view returns (address) {
+        require(_index < communities[_communityId].members.length, "Index out of bounds");
+        return communities[_communityId].members[_index];
+    }
+
+    function getCommunityInfo(bytes32 _communityId) public view returns (address[] memory, uint256, uint256) {
+        Community storage community = communities[_communityId];
+        return (community.members, community.formationTime, community.totalStake);
     }
 
     // Additional functions will be implemented here
