@@ -79,11 +79,18 @@ export default function Collect({
           !(Math.abs(geth.x - spaceshipPosition.x) < 20 && 
             Math.abs(geth.y - spaceshipPosition.y) < 20)
         ));
+        
+        // 如果有合约，调用 addPendingGETH 函数
+        if (contract) {
+          contract.addPendingGETH(userIdentifier, collectedGETHCount)
+            .then(() => console.log("Pending GETH added to contract"))
+            .catch(error => console.error("Error adding pending GETH:", error));
+        }
       }
     };
 
     collectGETH();
-  }, [spaceshipPosition, geth, setPendingGETH]);
+  }, [spaceshipPosition, geth, setPendingGETH, contract, userIdentifier]);
 
   return (
     <div className="relative w-full h-full">

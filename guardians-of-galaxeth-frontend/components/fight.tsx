@@ -27,22 +27,39 @@ export default function Fight({ userIdentifier, contract, gethBalance, updateGet
 
   useEffect(() => {
     const fetchBattleInfo = async () => {
-      if (contract) {
+      if (contract && userIdentifier) {
         try {
-          const communityId = await contract.playerCommunity(userIdentifier);
-          const communityInfo = await contract.getCommunityInfo(communityId);
-          const communityMembers = communityInfo[0];
-          
-          let totalGETH = 0;
-          for (const member of communityMembers) {
-            const playerInfo = await contract.players(member);
-            totalGETH += playerInfo.gethBalance.toNumber();
+          console.log("Checking community status for user:", userIdentifier);
+          const isInCommunity = await contract.isPlayerInCommunity(userIdentifier);
+          console.log("Is user in community:", isInCommunity);
+          if (!isInCommunity) {
+            console.log("User is not in a community");
+            alert("You need to join a community before fighting Moloch!");
+            return;
           }
-          setCommunityPower(totalGETH);
+
+          const communityId = await contract.getPlayerCommunityId(userIdentifier);
+          console.log("Player's community ID:", communityId);
+
+          const communityInfo = await contract.getCommunityInfo(communityId);
+          console.log("Community Info:", communityInfo);
+
+          const totalGETH = communityInfo[3];
+          console.log("Total GETH:", totalGETH.toString());
+
+          setCommunityPower(totalGETH.toNumber());
 
           const moloch = await contract.currentMoloch();
+          console.log("Current Moloch:", moloch);
+
+          if (moloch.attackPower.toNumber() === 0) {
+            console.log("Moloch not generated yet");
+            alert("Moloch has not been generated yet. Please wait for the game admin to generate Moloch.");
+            return;
+          }
+
           setMolochPower(moloch.attackPower.toNumber());
-          setMolochHealth(100); // Reset Moloch health to 100%
+          setMolochHealth(100);
 
           const artifactCount = await contract.getArtifactCount();
           const artifactsData = await Promise.all(
@@ -58,7 +75,10 @@ export default function Fight({ userIdentifier, contract, gethBalance, updateGet
           setArtifacts(artifactsData);
         } catch (error) {
           console.error("Error fetching battle info:", error);
+          alert("Error fetching battle information. Please try again.");
         }
+      } else {
+        console.log("Contract or userIdentifier not available", { contract, userIdentifier });
       }
     };
     fetchBattleInfo();

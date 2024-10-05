@@ -252,7 +252,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         for (uint i = 0; i < _members.length; i++) {
             require(players[_members[i]].isActive, "All members must be active players");
             totalStake += players[_members[i]].stakedAmount;
-            playerCommunity[_members[i]] = communityId;
+            playerCommunity[_members[i]] = communityId;  // Set community ID for each member
         }
 
         communities[communityId] = Community({
@@ -269,7 +269,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         uint256 attackPower = uint256(keccak256(abi.encodePacked(block.timestamp))) % 1000 + 500;
         string memory weakness = generateWeakness();
         currentMoloch = Moloch(attackPower, weakness, false);
-        emit MolochAppeared(attackPower, weakness);
+        emit MolochGenerated(attackPower);
     }
 
     function generateWeakness() internal view returns (string memory) {
@@ -445,5 +445,17 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
 function getAlly(address player, uint256 index) public view returns (address) {
     require(index < playerAlliances[player].length, "Index out of bounds");
     return playerAlliances[player][index];
+}
+
+function isPlayerInCommunity(address _player) public view returns (bool) {
+    return playerCommunity[_player] != bytes32(0);
+}
+
+function getPlayerCommunityId(address _player) public view returns (bytes32) {
+    return playerCommunity[_player];
+}
+
+function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOwner {
+    playerCommunity[_player] = _communityId;
 }
 }

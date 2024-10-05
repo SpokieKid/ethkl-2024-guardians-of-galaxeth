@@ -15,6 +15,7 @@ export default function Home() {
   const gameStage = searchParams.get('stage') || 'collect';
   const [pendingGETH, setPendingGETH] = useState(0);
   const [isJoined, setIsJoined] = useState(false);
+  const [isInCommunity, setIsInCommunity] = useState(false);
 
   useEffect(() => {
     const initContract = async () => {
@@ -30,6 +31,8 @@ export default function Home() {
         try {
           const playerInfo = await contract.players(userIdentifier);
           setIsJoined(playerInfo.isActive);
+          const inCommunity = await contract.isPlayerInCommunity(userIdentifier);
+          setIsInCommunity(inCommunity);
         } catch (error) {
           console.error("Error checking player status:", error);
         }
@@ -65,6 +68,11 @@ export default function Home() {
           <button onClick={handleJoinGame} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Join Game
           </button>
+        </div>
+      ) : !isInCommunity ? (
+        <div>
+          <p>You need to join or create a community to continue.</p>
+          {/* 这里可以添加加入或创建社区的按钮和逻辑 */}
         </div>
       ) : (
         <GameBoard 
