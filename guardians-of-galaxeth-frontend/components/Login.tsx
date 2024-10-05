@@ -14,14 +14,20 @@ const Login: React.FC<LoginProps> = ({ onVerificationSuccess }) => {
     return true;
   };
 
+  const handleVerificationSuccess = (result: any) => {
+    // 假设 result 包含了玩家的地址
+    const playerAddress = result.address; // 或者其他方式获取地址
+    onLoginSuccess(playerAddress);
+  };
+
   return (
     <div>
       <IDKitWidget
-        app_id="app_staging_584affc2713e9638173a50808575ec3d"
+        app_id="app_staging_0cad0a5d4c2f7c2a7d6f1c7c5f1e8d3b"
         action="login"
         verification_level={VerificationLevel.Device}
         handleVerify={verifyProof}
-        onSuccess={onVerificationSuccess}
+        onSuccess={handleVerificationSuccess}
       >
         {({ open }) => (
           <button

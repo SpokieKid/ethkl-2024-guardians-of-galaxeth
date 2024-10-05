@@ -25,6 +25,7 @@ export default function Home() {
   const handleLoginSuccess = (playerAddress: string) => {
     setIsLoggedIn(true);
     setAddress(playerAddress);
+    console.log("Login successful, address:", playerAddress);
   };
 
   return (
