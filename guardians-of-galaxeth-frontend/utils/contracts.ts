@@ -901,7 +901,7 @@ const contractABI = [
     }
   ];
 
-const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '';
 
 export function getContract() {
   if (typeof window !== 'undefined' && typeof window.ethereum !== 'undefined') {
@@ -915,11 +915,3 @@ export function getContract() {
     throw new Error('Please install MetaMask!');
   }
 }
-
-export const ERC20_ABI = [
-  // 只包含我们需要的函数
-  "function approve(address spender, uint256 amount) public returns (bool)",
-  "function allowance(address owner, address spender) public view returns (uint256)",
-  "function balanceOf(address account) public view returns (uint256)",
-  "function transfer(address recipient, uint256 amount) public returns (bool)"
-];

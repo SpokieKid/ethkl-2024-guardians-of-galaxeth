@@ -54,43 +54,28 @@ export default function Home() {
       setIsWalletConnected(true);
 
       const contract = getContract();
-      console.log("Checking balance...");
-      const balance = await provider.getBalance(address);
-      console.log("ETH Balance:", ethers.utils.formatEther(balance));
+      console.log("Checking if player is already in game...");
+      const playerInfo = await contract.players(address);
 
-      const stakeAmount = prompt("Enter the amount of ETH you want to stake (minimum 0.00001 ETH):");
-      if (!stakeAmount) return;
+      if (playerInfo.isActive) {
+        console.log("Player already in game. Updating game state...");
+        await updateGameState(address);
+      } else {
+        console.log("Player not in game. Joining...");
+        const stakeAmount = prompt("Enter the amount of ETH you want to stake (minimum 0.00001 ETH):");
+        if (!stakeAmount) return;
 
-      const stakeAmountWei = ethers.utils.parseEther(stakeAmount);
-      if (stakeAmountWei.lt(ethers.utils.parseEther("0.00001"))) {
-        alert("Stake amount must be at least 0.00001 ETH");
-        return;
-      }
+        const stakeAmountWei = ethers.utils.parseEther(stakeAmount);
+        if (stakeAmountWei.lt(ethers.utils.parseEther("0.00001"))) {
+          alert("Stake amount must be at least 0.00001 ETH");
+          return;
+        }
 
-      console.log("Joining game...");
-      try {
-        const gasEstimate = await contract.estimateGas.joinGame({ value: stakeAmountWei });
-        console.log("Estimated gas:", gasEstimate.toString());
-
-        const tx = await contract.joinGame({ 
-          value: stakeAmountWei, 
-          gasLimit: gasEstimate.mul(120).div(100) // Add 20% buffer
-        });
+        const tx = await contract.joinGame({ value: stakeAmountWei, gasLimit: 500000 });
         console.log("Transaction sent:", tx.hash);
-        const receipt = await tx.wait();
-        
-        if (receipt.status === 0) {
-          throw new Error("Transaction failed. Please check your balance and try again.");
-        }
-        
+        await tx.wait();
         console.log("Join game transaction confirmed");
-        await updateGameState();
-      } catch (error) {
-        console.error("Detailed error:", error);
-        if (error.error && error.error.message) {
-          console.error("Error message:", error.error.message);
-        }
-        throw error;
+        await updateGameState(address);
       }
     } catch (error) {
       console.error("Failed to connect wallet or join game:", error);
@@ -113,7 +98,7 @@ export default function Home() {
       const balance = await provider.getBalance(address);
       console.log("ETH Balance:", ethers.utils.formatEther(balance));
 
-      // 让用户输入质押数量
+      // 让用户入质押数量
       const stakeAmount = prompt("Enter the amount of ETH you want to stake (minimum 0.00001 ETH):");
       if (!stakeAmount) {
         setIsJoining(false);
@@ -145,15 +130,16 @@ export default function Home() {
     }
   };
 
-  const updateGameState = async () => {
-    if (!address) {
+  const updateGameState = async (playerAddress?: string) => {
+    const addressToUse = playerAddress || address;
+    if (!addressToUse) {
       console.log("Address not set, skipping game state update");
       return;
     }
 
     const contract = getContract();
     try {
-      const playerInfo = await contract.players(address);
+      const playerInfo = await contract.players(addressToUse);
       if (playerInfo.isActive) {
         setMinerals(playerInfo.gethBalance.toNumber());
         // Add more state updates here as needed
@@ -171,7 +157,7 @@ export default function Home() {
     const contract = getContract();
     try {
       await contract.collectMinerals();
-      updateGameState();
+      updateGameState(address);
     } catch (error) {
       console.error("Failed to collect minerals:", error);
       alert("Failed to collect minerals. Please try again.");
@@ -229,10 +215,10 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (isLoggedIn) {
-      updateGameState();
+    if (isLoggedIn && address) {
+      updateGameState(address);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, address]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
