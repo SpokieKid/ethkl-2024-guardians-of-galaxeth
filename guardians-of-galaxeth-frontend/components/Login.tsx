@@ -13,21 +13,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     return true;
   };
 
-  const handleSuccess = (proof: ISuccessResult) => {
-    console.log("Verification successful:", proof);
-    // Use the nullifier_hash as a unique identifier for the user
-    const userIdentifier = proof.nullifier_hash;
-    onLoginSuccess(userIdentifier);
+  const handleVerificationSuccess = (result: any) => {
+    // 假设 result 包含了玩家的地址
+    const playerAddress = result.address; // 或者其他方式获取地址
+    onLoginSuccess(playerAddress);
   };
 
   return (
     <div>
       <IDKitWidget
-        app_id="app_staging_584affc2713e9638173a50808575ec3d"
+        app_id="app_staging_0cad0a5d4c2f7c2a7d6f1c7c5f1e8d3b"
         action="login"
         verification_level={VerificationLevel.Device}
-        handleVerify={handleVerify}
-        onSuccess={handleSuccess}
+        handleVerify={verifyProof}
+        onSuccess={handleVerificationSuccess}
       >
         {({ open }) => (
           <button
