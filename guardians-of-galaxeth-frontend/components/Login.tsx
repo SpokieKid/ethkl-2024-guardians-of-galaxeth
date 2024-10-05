@@ -1,17 +1,23 @@
 "use client"
 import React from 'react';
-import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit';
+import { IDKitWidget, VerificationLevel, ISuccessResult } from '@worldcoin/idkit';
 
 type LoginProps = {
-  onVerificationSuccess: () => void;
+  onLoginSuccess: (address: string) => void;
 };
 
-const Login: React.FC<LoginProps> = ({ onVerificationSuccess }) => {
-  // TODO: Implement server-side verification
-  const verifyProof = async (proof: any) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const handleVerify = async (proof: ISuccessResult) => {
     console.log("Proof received:", proof);
-    // For now, we'll assume the proof is valid
+    // TODO: Implement server-side verification
     return true;
+  };
+
+  const handleSuccess = (proof: ISuccessResult) => {
+    console.log("Verification successful:", proof);
+    // Use the nullifier_hash as a unique identifier for the user
+    const userIdentifier = proof.nullifier_hash;
+    onLoginSuccess(userIdentifier);
   };
 
   return (
@@ -20,8 +26,8 @@ const Login: React.FC<LoginProps> = ({ onVerificationSuccess }) => {
         app_id="app_staging_584affc2713e9638173a50808575ec3d"
         action="login"
         verification_level={VerificationLevel.Device}
-        handleVerify={verifyProof}
-        onSuccess={onVerificationSuccess}
+        handleVerify={handleVerify}
+        onSuccess={handleSuccess}
       >
         {({ open }) => (
           <button

@@ -49,19 +49,19 @@ export default function GameBoard({ address, initialStage }: GameBoardProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex justify-between p-4">
+    <div className="flex flex-col h-screen bg-black text-white">
+      <div className="flex justify-between p-4 bg-gray-800">
         <div>
-          <p>Staking Power: {stakeValue} ETH</p>
-          <p>Reputation: {reputation}</p>
+          <p className="text-lg">Staking Power: {stakeValue} ETH</p>
+          <p className="text-lg">Reputation: {reputation}</p>
         </div>
-        <div>
-          <button onClick={() => handleStageChange('collect')}>Collect</button>
-          <button onClick={() => handleStageChange('alliance')}>Alliance</button>
-          <button onClick={() => handleStageChange('fight')}>Fight</button>
+        <div className="space-x-4">
+          <button onClick={() => handleStageChange('collect')} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Collect</button>
+          <button onClick={() => handleStageChange('alliance')} className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Alliance</button>
+          <button onClick={() => handleStageChange('fight')} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Fight</button>
         </div>
       </div>
-      <div className="flex-grow">
+      <div className="flex-grow p-4">
         {stage === 'collect' && <Collect address={address} contract={contract} />}
         {stage === 'alliance' && <Alliance address={address} contract={contract} />}
         {stage === 'fight' && <Fight address={address} contract={contract} />}
