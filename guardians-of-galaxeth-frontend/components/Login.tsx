@@ -25,7 +25,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         app_id="app_staging_0cad0a5d4c2f7c2a7d6f1c7c5f1e8d3b"
         action="login"
         verification_level={VerificationLevel.Device}
-        handleVerify={verifyProof}
+        // handleVerify={verifyProof}
         onSuccess={handleVerificationSuccess}
       >
         {({ open }) => (
