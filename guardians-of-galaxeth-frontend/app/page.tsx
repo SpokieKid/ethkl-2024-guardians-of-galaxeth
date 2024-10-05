@@ -6,6 +6,7 @@ import Login from '../components/login';
 import GameBoard from '../components/game-board';
 import { useSearchParams } from 'next/navigation';
 import { getContract } from '../utils/contracts';
+import Image from 'next/image';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

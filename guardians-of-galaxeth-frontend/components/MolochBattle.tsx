@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 
 type Artifact = {
   id: number;
@@ -57,13 +58,20 @@ const MolochBattle: React.FC<MolochBattleProps> = ({
                   setSelectedArtifact(artifact.id);
                   onSelectArtifact(artifact.id);
                 }}
-                className={`p-2 rounded ${
+                className={`p-2 rounded flex items-center ${
                   selectedArtifact === artifact.id
                     ? 'bg-yellow-500 text-black'
                     : 'bg-gray-700 hover:bg-gray-600'
                 }`}
               >
-                {artifact.name} (Power: {artifact.power})
+                <Image
+                  src="/artifact-sword.png"
+                  alt={artifact.name}
+                  width={32}
+                  height={32}
+                  className="mr-2 pixelated"
+                />
+                <span>{artifact.name} (Power: {artifact.power})</span>
               </button>
             ))
           ) : (

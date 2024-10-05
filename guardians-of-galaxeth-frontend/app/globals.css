@@ -17,13 +17,21 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-pixelify-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   background-image: url('/space-background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
   position: relative;
+}
+
+.bg-deep-space-blue {
+  background-color: #020014;  /* 使用深蓝色作为背景 */
+}
+
+.text-neon-yellow {
+  color: #FFFF00;  /* 使用霓虹黄色作为文本颜色 */
 }
 
 @layer utilities {
@@ -34,6 +42,7 @@ body {
 
 .pixelated {
   image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 @keyframes molochFloat {
