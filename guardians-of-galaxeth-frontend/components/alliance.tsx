@@ -4,20 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
 interface AllianceProps {
-  address: string;
+  userIdentifier: string;
   contract: ethers.Contract | null;
 }
 
-export default function Alliance({ address, contract }: AllianceProps) {
+export default function Alliance({ userIdentifier, contract }: AllianceProps) {
   const [allyAddress, setAllyAddress] = useState('');
   const [alliances, setAlliances] = useState<string[]>([]);
   const [communityMembers, setCommunityMembers] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchAllianceInfo = async () => {
-      if (contract && address) {
+      if (contract && userIdentifier) {
         try {
-          const communityId = await contract.playerCommunity(address);
+          const communityId = await contract.playerCommunity(userIdentifier);
           const [members, , ] = await contract.getCommunityInfo(communityId);
           setCommunityMembers(members);
 
@@ -26,14 +26,14 @@ export default function Alliance({ address, contract }: AllianceProps) {
           const allPlayers = await Promise.all(
             Array(playerCount.toNumber()).fill(0).map((_, index) => contract.players(index))
           );
-          setAlliances(allPlayers.filter(player => player !== address && !members.includes(player)));
+          setAlliances(allPlayers.filter(player => player !== userIdentifier && !members.includes(player)));
         } catch (error) {
           console.error("Error fetching alliance info:", error);
         }
       }
     };
     fetchAllianceInfo();
-  }, [contract, address]);
+  }, [contract, userIdentifier]);
 
   const handleProposeAlliance = async () => {
     if (!contract || !ethers.utils.isAddress(allyAddress)) return;
@@ -44,7 +44,7 @@ export default function Alliance({ address, contract }: AllianceProps) {
       alert("Alliance proposed successfully!");
       setAllyAddress('');
       // 刷新联盟信息
-      const communityId = await contract.playerCommunity(address);
+      const communityId = await contract.playerCommunity(userIdentifier);
       const [members, , ] = await contract.getCommunityInfo(communityId);
       setCommunityMembers(members);
     } catch (error) {
@@ -61,7 +61,7 @@ export default function Alliance({ address, contract }: AllianceProps) {
       await tx.wait();
       alert("Alliance accepted successfully!");
       // 刷新联盟信息
-      const communityId = await contract.playerCommunity(address);
+      const communityId = await contract.playerCommunity(userIdentifier);
       const [members, , ] = await contract.getCommunityInfo(communityId);
       setCommunityMembers(members);
     } catch (error) {

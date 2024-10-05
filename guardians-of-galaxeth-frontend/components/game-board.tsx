@@ -9,15 +9,15 @@ import { useRouter } from 'next/navigation';
 import { getContract } from '../utils/contracts';
 
 interface GameBoardProps {
-  address: string;
+  userIdentifier: string;
   initialStage: string;
+  contract: ethers.Contract | null;
 }
 
-export default function GameBoard({ address, initialStage }: GameBoardProps) {
+export default function GameBoard({ userIdentifier, initialStage, contract }: GameBoardProps) {
   const [stage, setStage] = useState(initialStage);
   const [stakeValue, setStakeValue] = useState(0);
   const [reputation, setReputation] = useState(0);
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,9 +30,9 @@ export default function GameBoard({ address, initialStage }: GameBoardProps) {
 
   useEffect(() => {
     const fetchPlayerInfo = async () => {
-      if (contract && address) {
+      if (contract && userIdentifier) {
         try {
-          const playerInfo = await contract.players(address);
+          const playerInfo = await contract.players(userIdentifier);
           setStakeValue(ethers.utils.formatEther(playerInfo.stakedAmount));
           setReputation(playerInfo.reputation.toNumber());
         } catch (error) {
@@ -41,7 +41,7 @@ export default function GameBoard({ address, initialStage }: GameBoardProps) {
       }
     };
     fetchPlayerInfo();
-  }, [contract, address]);
+  }, [contract, userIdentifier]);
 
   const handleStageChange = (newStage: string) => {
     setStage(newStage);
@@ -62,9 +62,9 @@ export default function GameBoard({ address, initialStage }: GameBoardProps) {
         </div>
       </div>
       <div className="flex-grow p-4">
-        {stage === 'collect' && <Collect address={address} contract={contract} />}
-        {stage === 'alliance' && <Alliance address={address} contract={contract} />}
-        {stage === 'fight' && <Fight address={address} contract={contract} />}
+        {stage === 'collect' && <Collect userIdentifier={userIdentifier} contract={contract} />}
+        {stage === 'alliance' && <Alliance userIdentifier={userIdentifier} contract={contract} />}
+        {stage === 'fight' && <Fight userIdentifier={userIdentifier} contract={contract} />}
       </div>
     </div>
   );

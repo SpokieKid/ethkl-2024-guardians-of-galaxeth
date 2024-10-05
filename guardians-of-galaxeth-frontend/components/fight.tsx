@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 
 interface FightProps {
-  address: string;
+  userIdentifier: string;
   contract: ethers.Contract | null;
 }
 
@@ -14,7 +14,7 @@ interface Artifact {
   power: number;
 }
 
-export default function Fight({ address, contract }: FightProps) {
+export default function Fight({ userIdentifier, contract }: FightProps) {
   const [communityPower, setCommunityPower] = useState(0);
   const [molochPower, setMolochPower] = useState(0);
   const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
@@ -24,7 +24,7 @@ export default function Fight({ address, contract }: FightProps) {
     const fetchBattleInfo = async () => {
       if (contract) {
         try {
-          const communityId = await contract.playerCommunity(address);
+          const communityId = await contract.playerCommunity(userIdentifier);
           const [, , totalStake] = await contract.getCommunityInfo(communityId);
           setCommunityPower(ethers.utils.formatEther(totalStake));
 
@@ -49,7 +49,7 @@ export default function Fight({ address, contract }: FightProps) {
       }
     };
     fetchBattleInfo();
-  }, [contract, address]);
+  }, [contract, userIdentifier]);
 
   const handleSelectArtifact = (artifactId: number) => {
     setSelectedArtifact(artifactId);

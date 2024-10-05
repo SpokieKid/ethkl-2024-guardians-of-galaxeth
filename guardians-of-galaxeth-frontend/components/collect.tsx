@@ -5,20 +5,20 @@ import { ethers } from 'ethers';
 import Spaceship from './Spaceship';
 
 interface CollectProps {
-  address: string;
+  userIdentifier: string;
   contract: ethers.Contract | null;
 }
 
-export default function Collect({ address, contract }: CollectProps) {
+export default function Collect({ userIdentifier, contract }: CollectProps) {
   const [spaceshipPosition, setSpaceshipPosition] = useState({ x: 0, y: 0 });
   const [minerals, setMinerals] = useState(0);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   useEffect(() => {
     const fetchPlayerInfo = async () => {
-      if (contract && address) {
+      if (contract && userIdentifier) {
         try {
-          const playerInfo = await contract.players(address);
+          const playerInfo = await contract.players(userIdentifier);
           setMinerals(ethers.utils.formatEther(playerInfo.gethBalance));
           const lastCollectTime = playerInfo.lastCollectTime.toNumber();
           const currentTime = Math.floor(Date.now() / 1000);
@@ -34,7 +34,7 @@ export default function Collect({ address, contract }: CollectProps) {
 
     const timer = setInterval(fetchPlayerInfo, 5000); // 每5秒更新一次
     return () => clearInterval(timer);
-  }, [contract, address]);
+  }, [contract, userIdentifier]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -66,7 +66,7 @@ export default function Collect({ address, contract }: CollectProps) {
     try {
       const tx = await contract.collectMinerals();
       await tx.wait();
-      const playerInfo = await contract.players(address);
+      const playerInfo = await contract.players(userIdentifier);
       setMinerals(ethers.utils.formatEther(playerInfo.gethBalance));
       setCooldownRemaining(60); // 重置冷却时间
     } catch (error) {
