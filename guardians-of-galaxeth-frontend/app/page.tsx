@@ -13,24 +13,8 @@ export default function Home() {
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const searchParams = useSearchParams();
   const gameStage = searchParams.get('stage') || 'collect';
-  const [pendingMinerals, setPendingMinerals] = useState(0);
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [communityMembers, setCommunityMembers] = useState([]);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-
+  const [pendingGETH, setPendingGETH] = useState(0);
   const [isJoined, setIsJoined] = useState(false);
-
-  const handleJoinGame = async () => {
-    if (contract) {
-      try {
-        const tx = await contract.joinGame({ value: ethers.utils.parseEther("0.00001") });
-        await tx.wait();
-        setIsJoined(true);
-      } catch (error) {
-        console.error("Error joining game:", error);
-      }
-    }
-  };
 
   useEffect(() => {
     const initContract = async () => {
@@ -41,15 +25,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    console.log('isLoggedIn changed:', isLoggedIn);
-    console.log('userIdentifier:', userIdentifier);
-  }, [isLoggedIn, userIdentifier]);
+    const checkPlayerStatus = async () => {
+      if (contract && userIdentifier) {
+        try {
+          const playerInfo = await contract.players(userIdentifier);
+          setIsJoined(playerInfo.isActive);
+        } catch (error) {
+          console.error("Error checking player status:", error);
+        }
+      }
+    };
+    checkPlayerStatus();
+  }, [contract, userIdentifier]);
 
   const handleLoginSuccess = (worldIdHash: string, walletAddress: string) => {
-    console.log('Login success, World ID hash:', worldIdHash);
-    console.log('Login success, wallet address:', walletAddress);
     setIsLoggedIn(true);
     setUserIdentifier(walletAddress);
+  };
+
+  const handleJoinGame = async () => {
+    if (contract && !isJoined) {
+      try {
+        const tx = await contract.joinGame({ value: ethers.utils.parseEther("0.00001") });
+        await tx.wait();
+        setIsJoined(true);
+      } catch (error) {
+        console.error("Error joining game:", error);
+      }
+    }
   };
 
   return (
@@ -68,8 +71,8 @@ export default function Home() {
           userIdentifier={userIdentifier} 
           initialStage={gameStage} 
           contract={contract}
-          pendingMinerals={pendingMinerals}
-          setPendingMinerals={setPendingMinerals}
+          pendingGETH={pendingGETH}
+          setPendingGETH={setPendingGETH}
         />
       )}
     </div>

@@ -1,16 +1,16 @@
 import React from 'react';
 
-type MineralCollectionProps = {
-  minerals: number;
+type GETHCollectionProps = {
+  geth: number;
 };
 
-const MineralCollection: React.FC<MineralCollectionProps> = ({ minerals }) => {
+const GETHCollection: React.FC<GETHCollectionProps> = ({ geth }) => {
   return (
     <div className="bg-gray-800 p-4 rounded-lg">
-      <h2 className="text-xl font-bold mb-4">Mineral Collection</h2>
-      <p className="mb-4">Current GETH Balance: {minerals.toFixed(2)}</p>
+      <h2 className="text-xl font-bold mb-4">GETH Collection</h2>
+      <p className="mb-4">Current GETH Balance: {geth.toFixed(2)}</p>
     </div>
   );
 };
 
-export default MineralCollection;
+export default GETHCollection;

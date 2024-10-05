@@ -2,30 +2,47 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import MolochBattle from './MolochBattle';
 import Image from 'next/image';
 
 interface FightProps {
   userIdentifier: string;
   contract: ethers.Contract | null;
+  gethBalance: number;
+  updateGethBalance: () => Promise<void>;
 }
 
-export default function Fight({ userIdentifier, contract }: FightProps) {
+type Artifact = {
+  id: number;
+  name: string;
+  power: number;
+};
+
+export default function Fight({ userIdentifier, contract, gethBalance, updateGethBalance }: FightProps) {
   const [communityPower, setCommunityPower] = useState(0);
   const [molochPower, setMolochPower] = useState(0);
   const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [molochHealth, setMolochHealth] = useState(100); // 假设 Moloch 有 100 点生命值
+  const [molochHealth, setMolochHealth] = useState(100);
 
   useEffect(() => {
     const fetchBattleInfo = async () => {
       if (contract) {
         try {
           const communityId = await contract.playerCommunity(userIdentifier);
-          const [, , totalStake] = await contract.getCommunityInfo(communityId);
-          setCommunityPower(ethers.utils.formatEther(totalStake));
+          const communityInfo = await contract.getCommunityInfo(communityId);
+          const communityMembers = communityInfo[0];
+          
+          let totalGETH = 0;
+          for (const member of communityMembers) {
+            const playerInfo = await contract.players(member);
+            totalGETH += playerInfo.gethBalance.toNumber();
+          }
+          setCommunityPower(totalGETH);
 
           const moloch = await contract.currentMoloch();
           setMolochPower(moloch.attackPower.toNumber());
+          setMolochHealth(100); // Reset Moloch health to 100%
 
           const artifactCount = await contract.getArtifactCount();
           const artifactsData = await Promise.all(
@@ -61,7 +78,9 @@ export default function Fight({ userIdentifier, contract }: FightProps) {
       // Refresh battle info after fight
       const moloch = await contract.currentMoloch();
       setMolochPower(moloch.attackPower.toNumber());
+      setMolochHealth(prevHealth => Math.max(0, prevHealth - 20)); // Reduce Moloch health by 20%
       setSelectedArtifact(null);
+      await updateGethBalance(); // Update GETH balance after fight
     } catch (error) {
       console.error("Error fighting Moloch:", error);
       alert("Failed to fight Moloch. Please try again.");
@@ -71,60 +90,24 @@ export default function Fight({ userIdentifier, contract }: FightProps) {
   return (
     <div className="p-4 bg-deep-space-blue text-neon-yellow">
       <h2 className="text-2xl font-bold mb-4">Fight Moloch</h2>
+      <p className="mb-2">Your GETH Balance: {gethBalance}</p>
       <div className="flex justify-center mb-4">
         <Image
           src="/moloch.png"
           alt="Moloch"
           width={100}
           height={100}
-          className="pixelated moloch-animation" // 这里应用了动画类
+          className="pixelated moloch-animation"
         />
       </div>
-      <div className="mb-4">
-        <p>Moloch Health: {molochHealth}%</p>
-        <div className="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700">
-          <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${molochHealth}%` }}></div>
-        </div>
-      </div>
-      <div className="mb-4">
-        <p>Community Power: {communityPower}</p>
-        <p>Moloch Power: {molochPower}</p>
-      </div>
-      <div className="mb-4">
-        <h3 className="text-xl font-semibold mb-2">Select Artifact:</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {artifacts.map((artifact) => (
-            <button
-              key={artifact.id}
-              onClick={() => handleSelectArtifact(artifact.id)}
-              className={`p-2 rounded ${
-                selectedArtifact === artifact.id
-                  ? 'bg-neon-yellow text-deep-space-blue'
-                  : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {artifact.name} (Power: {artifact.power})
-            </button>
-          ))}
-        </div>
-      </div>
-      <button
-        onClick={handleFightMoloch}
-        disabled={selectedArtifact === null}
-        className={`w-full py-2 rounded font-bold ${
-          selectedArtifact !== null
-            ? 'bg-neon-yellow text-deep-space-blue hover:bg-yellow-400'
-            : 'bg-gray-500 cursor-not-allowed'
-        }`}
-      >
-        Fight Moloch
-      </button>
+      <MolochBattle
+        molochPower={molochPower}
+        communityPower={communityPower}
+        artifacts={artifacts}
+        onSelectArtifact={handleSelectArtifact}
+        onFightMoloch={handleFightMoloch}
+        molochHealth={molochHealth}
+      />
     </div>
   );
-}
-
-function handleFight() {
-  // 实现战斗逻辑
-  console.log("Attacking Moloch!");
-  // 这里你可以调用合约方法来进行攻击
 }

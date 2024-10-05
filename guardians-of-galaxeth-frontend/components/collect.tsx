@@ -2,33 +2,48 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import Spaceship from './Spaceship';
 
 interface CollectProps {
   userIdentifier: string;
   contract: ethers.Contract | null;
-  pendingMinerals: number;
-  setPendingMinerals: (value: number) => void;
+  pendingGETH: number;
+  setPendingGETH: (value: number | ((prevValue: number) => number)) => void;
+  gethBalance: number;
+  setGethBalance: (value: number) => void;
 }
 
-export default function Collect({ userIdentifier, contract, pendingMinerals, setPendingMinerals }: CollectProps) {
+export default function Collect({ 
+  userIdentifier,
+  contract,
+  pendingGETH,
+  setPendingGETH,
+  gethBalance,
+  setGethBalance
+}: CollectProps) {
   const [spaceshipPosition, setSpaceshipPosition] = useState({ x: 0, y: 0 });
-  const [minerals, setMinerals] = useState<{ x: number; y: number }[]>([]);
+  const [geth, setGETH] = useState<{ x: number; y: number }[]>([]);
 
   useEffect(() => {
-    // 生成随机矿物
-    const generateMinerals = () => {
-      const newMinerals = [];
+    const generateGETH = () => {
+      const newGETH = [];
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const radius = Math.min(window.innerWidth, window.innerHeight) / 4;
+
       for (let i = 0; i < 5; i++) {
-        newMinerals.push({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
+        const angle = Math.random() * 2 * Math.PI;
+        const r = Math.sqrt(Math.random()) * radius;
+        newGETH.push({
+          x: centerX + r * Math.cos(angle),
+          y: centerY + r * Math.sin(angle),
         });
       }
-      setMinerals(newMinerals);
+      setGETH(newGETH);
     };
 
-    generateMinerals();
-    const interval = setInterval(generateMinerals, 10000); // 每10秒生成新的矿物
+    generateGETH();
+    const interval = setInterval(generateGETH, 15000); // Generate new GETH every 15 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -53,46 +68,33 @@ export default function Collect({ userIdentifier, contract, pendingMinerals, set
   }, []);
 
   useEffect(() => {
-    // 检查是否收集到矿物
-    const collectMinerals = () => {
-      const collectedMinerals = minerals.filter(mineral => 
-        Math.abs(mineral.x - spaceshipPosition.x) < 20 && 
-        Math.abs(mineral.y - spaceshipPosition.y) < 20
-      );
-      if (collectedMinerals.length > 0) {
-        setPendingMinerals(prev => prev + collectedMinerals.length);
-        setMinerals(prev => prev.filter(mineral => !collectedMinerals.includes(mineral)));
+    const collectGETH = () => {
+      const collectedGETHCount = geth.filter(geth => 
+        Math.abs(geth.x - spaceshipPosition.x) < 20 && 
+        Math.abs(geth.y - spaceshipPosition.y) < 20
+      ).length;
+      if (collectedGETHCount > 0) {
+        setPendingGETH(prevPendingGETH => prevPendingGETH + collectedGETHCount);
+        setGETH(prev => prev.filter(geth => 
+          !(Math.abs(geth.x - spaceshipPosition.x) < 20 && 
+            Math.abs(geth.y - spaceshipPosition.y) < 20)
+        ));
       }
     };
 
-    collectMinerals();
-  }, [spaceshipPosition, minerals, setPendingMinerals]);
-
-  const handleCollectMinerals = async () => {
-    if (contract) {
-      try {
-        const tx = await contract.collectMinerals();
-        await tx.wait();
-        setPendingMinerals(0);
-      } catch (error) {
-        console.error("Error collecting minerals:", error);
-      }
-    }
-  };
+    collectGETH();
+  }, [spaceshipPosition, geth, setPendingGETH]);
 
   return (
     <div className="relative w-full h-full">
-      {minerals.map((mineral, index) => (
+      {geth.map((geth, index) => (
         <div 
           key={index} 
           className="absolute w-4 h-4 bg-yellow-400 rounded-full"
-          style={{ left: mineral.x, top: mineral.y }}
+          style={{ left: geth.x, top: geth.y }}
         />
       ))}
-      <div 
-        className="absolute w-10 h-10 bg-blue-500"
-        style={{ left: spaceshipPosition.x, top: spaceshipPosition.y }}
-      />
+      <Spaceship position={spaceshipPosition} />
     </div>
   );
 }

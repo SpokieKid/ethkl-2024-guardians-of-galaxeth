@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import AllianceFormation from './AllianceFormation';
 
 interface AllianceProps {
   userIdentifier: string;
@@ -9,107 +10,96 @@ interface AllianceProps {
 }
 
 export default function Alliance({ userIdentifier, contract }: AllianceProps) {
-  const [allyAddress, setAllyAddress] = useState('');
-  const [alliances, setAlliances] = useState<string[]>([]);
-  const [communityMembers, setCommunityMembers] = useState<string[]>([]);
+  const [allies, setAllies] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchAllianceInfo = async () => {
-      if (contract && userIdentifier) {
+    const fetchAllies = async () => {
+      if (contract) {
         try {
-          const communityId = await contract.playerCommunity(userIdentifier);
-          const [members, , ] = await contract.getCommunityInfo(communityId);
-          setCommunityMembers(members);
+          console.log("Fetching allies for:", userIdentifier);
+          // 获取盟友数量
+          const allyCount = await contract.getAllyCount(userIdentifier);
+          console.log("Ally count:", allyCount.toNumber());
 
-          // 获取所有玩家的地址作为潜在盟友
-          const playerCount = await contract.getPlayerCount();
-          const allPlayers = await Promise.all(
-            Array(playerCount.toNumber()).fill(0).map((_, index) => contract.players(index))
-          );
-          setAlliances(allPlayers.filter(player => player !== userIdentifier && !members.includes(player)));
-        } catch (error) {
-          console.error("Error fetching alliance info:", error);
+          // 获取所有盟友
+          const alliesData = [];
+          for (let i = 0; i < allyCount.toNumber(); i++) {
+            const ally = await contract.getAlly(userIdentifier, i);
+            alliesData.push(ally);
+          }
+
+          console.log("Allies data:", alliesData);
+          setAllies(alliesData);
+        } catch (error: any) {
+          console.error("Error fetching allies:", error);
+          if (error.reason) {
+            console.error("Error reason:", error.reason);
+          }
+          if (error.code) {
+            console.error("Error code:", error.code);
+          }
+          if (error.data) {
+            console.error("Error data:", error.data);
+          }
         }
       }
     };
-    fetchAllianceInfo();
+    fetchAllies();
   }, [contract, userIdentifier]);
 
-  const handleProposeAlliance = async () => {
-    if (!contract || !ethers.utils.isAddress(allyAddress)) return;
-
-    try {
-      const tx = await contract.proposeAlliance(allyAddress);
-      await tx.wait();
-      alert("Alliance proposed successfully!");
-      setAllyAddress('');
-      // 刷新联盟信息
-      const communityId = await contract.playerCommunity(userIdentifier);
-      const [members, , ] = await contract.getCommunityInfo(communityId);
-      setCommunityMembers(members);
-    } catch (error) {
-      console.error("Error proposing alliance:", error);
-      alert("Failed to propose alliance. Please try again.");
+  const handleProposeAlliance = async (address: string) => {
+    if (contract) {
+      try {
+        const tx = await contract.proposeAlliance(address);
+        await tx.wait();
+        alert("Alliance proposed successfully!");
+      } catch (error: any) {
+        console.error("Error proposing alliance:", error);
+        alert(`Failed to propose alliance: ${error.message}`);
+      }
     }
   };
 
-  const handleAcceptAlliance = async (proposerAddress: string) => {
-    if (!contract) return;
+  const handleAcceptAlliance = async (address: string) => {
+    if (contract) {
+      try {
+        const tx = await contract.acceptAlliance(address);
+        await tx.wait();
+        alert("Alliance accepted successfully!");
+      } catch (error: any) {
+        console.error("Error accepting alliance:", error);
+        alert(`Failed to accept alliance: ${error.message}`);
+      }
+    }
+  };
 
-    try {
-      const tx = await contract.acceptAlliance(proposerAddress);
-      await tx.wait();
-      alert("Alliance accepted successfully!");
-      // 刷新联盟信息
-      const communityId = await contract.playerCommunity(userIdentifier);
-      const [members, , ] = await contract.getCommunityInfo(communityId);
-      setCommunityMembers(members);
-    } catch (error) {
-      console.error("Error accepting alliance:", error);
-      alert("Failed to accept alliance. Please try again.");
+  const handleDefeatObstacle = async (address: string) => {
+    if (contract) {
+      try {
+        const tx = await contract.defeatObstacle(address);
+        await tx.wait();
+        alert("Obstacle defeated successfully!");
+      } catch (error: any) {
+        console.error("Error defeating obstacle:", error);
+        alert(`Failed to defeat obstacle: ${error.message}`);
+      }
     }
   };
 
   return (
-    <div className="p-4 bg-deep-space-blue text-neon-yellow">
-      <h2 className="text-2xl font-bold mb-4">Form Alliances</h2>
-      <div className="mb-4">
-        <input
-          type="text"
-          value={allyAddress}
-          onChange={(e) => setAllyAddress(e.target.value)}
-          placeholder="Enter ally address"
-          className="w-full p-2 bg-gray-700 text-white rounded"
-        />
-        <button
-          onClick={handleProposeAlliance}
-          className="mt-2 bg-neon-yellow text-deep-space-blue px-4 py-2 rounded"
-        >
-          Propose Alliance
-        </button>
-      </div>
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Current Community Members:</h3>
-        {communityMembers.map((member, index) => (
-          <div key={index} className="mb-2">
-            <span>{member}</span>
-          </div>
+    <div>
+      <h2>Alliance</h2>
+      <AllianceFormation 
+        onProposeAlliance={handleProposeAlliance}
+        onAcceptAlliance={handleAcceptAlliance}
+        onDefeatObstacle={handleDefeatObstacle}
+      />
+      <h3>Your Allies:</h3>
+      <ul>
+        {allies.map((ally, index) => (
+          <li key={index}>{ally}</li>
         ))}
-      </div>
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Potential Allies:</h3>
-        {alliances.map((ally, index) => (
-          <div key={index} className="flex justify-between items-center mb-2">
-            <span>{ally}</span>
-            <button
-              onClick={() => handleAcceptAlliance(ally)}
-              className="bg-green-500 text-white px-2 py-1 rounded"
-            >
-              Accept
-            </button>
-          </div>
-        ))}
-      </div>
+      </ul>
     </div>
   );
 }

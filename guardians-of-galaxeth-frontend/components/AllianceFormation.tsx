@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 type AllianceFormationProps = {
   onProposeAlliance: (address: string) => void;
   onAcceptAlliance: (address: string) => void;
+  onDefeatObstacle: (address: string) => void;
 };
 
-const AllianceFormation: React.FC<AllianceFormationProps> = ({ onProposeAlliance, onAcceptAlliance }) => {
+const AllianceFormation: React.FC<AllianceFormationProps> = ({ onProposeAlliance, onAcceptAlliance, onDefeatObstacle }) => {
   const [allyAddress, setAllyAddress] = useState('');
 
   return (
@@ -30,6 +31,12 @@ const AllianceFormation: React.FC<AllianceFormationProps> = ({ onProposeAlliance
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
         >
           Accept Alliance
+        </button>
+        <button
+          onClick={() => onDefeatObstacle(allyAddress)}
+          className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Defeat Obstacle
         </button>
       </div>
     </div>
