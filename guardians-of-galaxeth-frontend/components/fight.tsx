@@ -2,16 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import Image from 'next/image';
 
 interface FightProps {
   address: string;
   contract: ethers.Contract | null;
-}
-
-interface Artifact {
-  id: number;
-  name: string;
-  power: number;
 }
 
 export default function Fight({ address, contract }: FightProps) {
@@ -19,6 +14,7 @@ export default function Fight({ address, contract }: FightProps) {
   const [molochPower, setMolochPower] = useState(0);
   const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [molochHealth, setMolochHealth] = useState(100); // 假设 Moloch 有 100 点生命值
 
   useEffect(() => {
     const fetchBattleInfo = async () => {
@@ -75,6 +71,21 @@ export default function Fight({ address, contract }: FightProps) {
   return (
     <div className="p-4 bg-deep-space-blue text-neon-yellow">
       <h2 className="text-2xl font-bold mb-4">Fight Moloch</h2>
+      <div className="flex justify-center mb-4">
+        <Image
+          src="/moloch.png"
+          alt="Moloch"
+          width={100}
+          height={100}
+          className="pixelated moloch-animation" // 这里应用了动画类
+        />
+      </div>
+      <div className="mb-4">
+        <p>Moloch Health: {molochHealth}%</p>
+        <div className="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700">
+          <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${molochHealth}%` }}></div>
+        </div>
+      </div>
       <div className="mb-4">
         <p>Community Power: {communityPower}</p>
         <p>Moloch Power: {molochPower}</p>
@@ -110,4 +121,10 @@ export default function Fight({ address, contract }: FightProps) {
       </button>
     </div>
   );
+}
+
+function handleFight() {
+  // 实现战斗逻辑
+  console.log("Attacking Moloch!");
+  // 这里你可以调用合约方法来进行攻击
 }
