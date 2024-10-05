@@ -1,14 +1,15 @@
 "use client
 import React from 'react';
-import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit';
+import { IDKitWidget, VerificationLevel, ISuccessResult } from '@worldcoin/idkit';
 
 type LoginProps = {
-  onLoginSuccess: (playerAddress: string) => void;  // 修改这里，确保类型正确
+  onLoginSuccess: (address: string) => void;
 };
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
-  const verifyProof = async (proof: any) => {
+  const handleVerify = async (proof: ISuccessResult) => {
     console.log("Proof received:", proof);
+    // TODO: Implement server-side verification
     return true;
   };
 
@@ -30,7 +31,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         app_id="app_staging_0cad0a5d4c2f7c2a7d6f1c7c5f1e8d3b"
         action="login"
         verification_level={VerificationLevel.Device}
-        handleVerify={verifyProof}
+        // handleVerify={verifyProof}
         onSuccess={handleVerificationSuccess}
       >
         {({ open }) => (

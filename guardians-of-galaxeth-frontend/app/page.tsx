@@ -9,7 +9,7 @@ import { getContract } from '../utils/contracts';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [address, setAddress] = useState('');
+  const [userIdentifier, setUserIdentifier] = useState('');
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const searchParams = useSearchParams();
   const gameStage = searchParams.get('stage') || 'collect';
@@ -22,10 +22,15 @@ export default function Home() {
     initContract();
   }, []);
 
-  const handleLoginSuccess = (playerAddress: string) => {
+  useEffect(() => {
+    console.log('isLoggedIn changed:', isLoggedIn);
+    console.log('userIdentifier:', userIdentifier);
+  }, [isLoggedIn, userIdentifier]);
+
+  const handleLoginSuccess = (identifier: string) => {
+    console.log('Login success, identifier:', identifier);
     setIsLoggedIn(true);
-    setAddress(playerAddress);
-    console.log("Login successful, address:", playerAddress);
+    setUserIdentifier(identifier);
   };
 
   return (
@@ -33,7 +38,7 @@ export default function Home() {
       {!isLoggedIn ? (
         <Login onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <GameBoard address={address} initialStage={gameStage} contract={contract} />
+        <GameBoard userIdentifier={userIdentifier} initialStage={gameStage} contract={contract} />
       )}
     </div>
   );

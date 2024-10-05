@@ -34,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${pixelifySans.variable} ${inter.variable} ${robotoMono.variable} font-sans antialiased bg-deep-space-blue text-neon-yellow min-h-screen`}
+        className={`${pixelifySans.variable} ${inter.variable} ${robotoMono.variable} font-sans antialiased bg-black text-white min-h-screen`}
       >
         {children}
       </body>
