@@ -17,11 +17,31 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-pixelify-sans), Arial, Helvetica, sans-serif;
+  background-image: url('/space-background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  position: relative;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.pixelated {
+  image-rendering: pixelated;
+}
+
+@keyframes molochFloat {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.moloch-animation {
+  animation: molochFloat 2s ease-in-out infinite;
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import Image from 'next/image';
 
 interface AllianceProps {
   userIdentifier: string;
@@ -98,17 +99,26 @@ export default function Alliance({ userIdentifier, contract }: AllianceProps) {
       </div>
       <div>
         <h3 className="text-xl font-semibold mb-2">Potential Allies:</h3>
-        {alliances.map((ally, index) => (
-          <div key={index} className="flex justify-between items-center mb-2">
-            <span>{ally}</span>
-            <button
-              onClick={() => handleAcceptAlliance(ally)}
-              className="bg-green-500 text-white px-2 py-1 rounded"
-            >
-              Accept
-            </button>
-          </div>
-        ))}
+        <div className="flex flex-wrap gap-4">
+          {alliances.map((ally, index) => (
+            <div key={index} className="flex flex-col items-center">
+              <Image
+                src="/ally-ufo.png"
+                alt="Ally UFO"
+                width={50}
+                height={50}
+                className="mb-2"
+              />
+              <span className="text-xs mb-1">{ally.slice(0, 6)}...{ally.slice(-4)}</span>
+              <button
+                onClick={() => handleAcceptAlliance(ally)}
+                className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+              >
+                Accept
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
