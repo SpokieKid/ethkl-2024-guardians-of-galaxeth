@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import AllianceFormation from './AllianceFormation';
+import Image from 'next/image';
+import allyUfoIcon from '../public/ally-ufo.png';
 
 interface AllianceProps {
   userIdentifier: string;
@@ -87,17 +89,26 @@ export default function Alliance({ userIdentifier, contract }: AllianceProps) {
   };
 
   return (
-    <div>
-      <h2>Alliance</h2>
+    <div className="bg-deep-space-blue text-neon-yellow p-4 rounded-lg">
+      <h2 className="text-2xl font-bold mb-4">Alliance</h2>
       <AllianceFormation 
         onProposeAlliance={handleProposeAlliance}
         onAcceptAlliance={handleAcceptAlliance}
         onDefeatObstacle={handleDefeatObstacle}
       />
-      <h3>Your Allies:</h3>
-      <ul>
+      <h3 className="text-xl font-semibold mt-6 mb-2">Your Allies:</h3>
+      <ul className="grid grid-cols-2 gap-4">
         {allies.map((ally, index) => (
-          <li key={index}>{ally}</li>
+          <li key={index} className="flex items-center bg-gray-800 p-2 rounded">
+            <Image
+              src={allyUfoIcon}
+              alt="Ally UFO"
+              width={32}
+              height={32}
+              className="mr-2"
+            />
+            <span className="truncate">{ally}</span>
+          </li>
         ))}
       </ul>
     </div>
