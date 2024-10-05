@@ -69,11 +69,6 @@ export default function Home() {
             Join Game
           </button>
         </div>
-      ) : !isInCommunity ? (
-        <div>
-          <p>You need to join or create a community to continue.</p>
-          {/* 这里可以添加加入或创建社区的按钮和逻辑 */}
-        </div>
       ) : (
         <GameBoard 
           userIdentifier={userIdentifier} 
@@ -81,6 +76,7 @@ export default function Home() {
           contract={contract}
           pendingGETH={pendingGETH}
           setPendingGETH={setPendingGETH}
+          isInCommunity={isInCommunity}
         />
       )}
     </div>

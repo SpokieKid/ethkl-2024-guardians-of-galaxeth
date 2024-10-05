@@ -86,7 +86,7 @@ export default function Collect({
         if (contract) {
           contract.addPendingGETH(userIdentifier, collectedGETHCount)
             .then(() => console.log("Pending GETH added to contract"))
-            .catch(error => console.error("Error adding pending GETH:", error));
+            .catch((error: any) => console.error("Error adding pending GETH:", error));
         }
       }
     };
