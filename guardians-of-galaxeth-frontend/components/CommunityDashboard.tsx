@@ -16,7 +16,7 @@ const CommunityDashboard: React.FC<CommunityDashboardProps> = ({ communityId, me
   return (
     <div className="bg-gray-800 p-4 rounded-lg">
       <h2 className="text-xl font-bold mb-4">Community Dashboard</h2>
-      <p>Community ID: {communityId}</p>
+      <p>Community ID: {communityId || 'Not part of a community'}</p>
       <p>Total Stake: {totalStake} ETH</p>
       <h3 className="text-lg font-semibold mt-4 mb-2">Members:</h3>
       <ul>

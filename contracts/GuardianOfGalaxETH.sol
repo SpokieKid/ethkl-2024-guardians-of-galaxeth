@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
-    IERC20 public immutable ethToken; // 假设我们使用一个代表ETH的ERC20代币
-
     struct Player {
         uint256 stakedAmount;
         uint256 gethBalance;
@@ -60,6 +57,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     uint256 public constant OBSTACLE_BASE_DIFFICULTY = 1000;
     uint256 public constant MIN_COMMUNITY_SIZE = 3;
     uint256 public constant VOTING_PERIOD = 1 days;
+    uint256 public constant MIN_STAKE = 0.00001 ether;
 
     event PlayerJoined(address indexed player, uint256 stakedAmount);
     event PlayerCollected(address indexed player, uint256 amount);
@@ -72,25 +70,26 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     event VoteCast(address indexed voter, bytes32 indexed communityId, uint256 artifactIndex, uint256 voteCount);
     event VotingEnded(bytes32 indexed communityId, uint256 winningArtifactIndex);
     event MineralsCollected(address indexed player, uint256 amount);
+    event PlayerLeft(address indexed player, uint256 totalAmount);
 
-    constructor(address _ethToken) Ownable(msg.sender) {
-        ethToken = IERC20(_ethToken);
+    constructor() Ownable(msg.sender) {
     }
 
-    function joinGame(uint256 _stakeAmount) external nonReentrant {
+    function joinGame() external payable nonReentrant {
+        require(msg.value >= MIN_STAKE, "Insufficient stake");
         require(!players[msg.sender].isActive, "Player already in game");
-        require(_stakeAmount > 0, "Stake amount must be greater than 0");
-        
-        require(ethToken.transferFrom(msg.sender, address(this), _stakeAmount), "Transfer failed");
-        
+
+        // Add more detailed checks here
+        require(address(this).balance + msg.value >= address(this).balance, "Overflow check failed");
+
         players[msg.sender] = Player({
-            stakedAmount: _stakeAmount,
+            stakedAmount: msg.value,
             gethBalance: 0,
             reputation: 0,
             isActive: true
         });
 
-        emit PlayerJoined(msg.sender, _stakeAmount);
+        emit PlayerJoined(msg.sender, msg.value);
     }
 
     // TODO: Implement collect, alliance, and fight mechanics
@@ -99,11 +98,15 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         Player storage player = players[msg.sender];
         require(player.isActive, "Player not in game");
 
-        uint256 amountToReturn = player.stakedAmount;
-        player.stakedAmount = 0;
+        uint256 totalAmount = player.stakedAmount + player.gethBalance;
         player.isActive = false;
+        player.stakedAmount = 0;
+        player.gethBalance = 0;
 
-        require(ethToken.transfer(msg.sender, amountToReturn), "Transfer failed");
+        (bool success, ) = msg.sender.call{value: totalAmount}("");
+        require(success, "Transfer failed");
+
+        emit PlayerLeft(msg.sender, totalAmount);
     }
 
     // Additional functions will be implemented here

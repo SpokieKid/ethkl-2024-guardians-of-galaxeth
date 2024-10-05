@@ -7,11 +7,12 @@ type MineralCollectionProps = {
 
 const MineralCollection: React.FC<MineralCollectionProps> = ({ minerals, onCollect }) => {
   return (
-    <div className="flex flex-col items-center">
-      <p className="text-xl mb-2">GETH: {minerals}</p>
-      <button 
+    <div className="bg-gray-800 p-4 rounded-lg">
+      <h2 className="text-xl font-bold mb-4">Mineral Collection</h2>
+      <p className="mb-4">Current GETH Balance: {minerals}</p>
+      <button
         onClick={onCollect}
-        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
       >
         Collect Minerals
       </button>

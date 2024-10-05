@@ -4,7 +4,6 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("GuardianOfGalaxETH", function () {
   let guardianOfGalaxETH: any;
-  let ethToken: any;
   let owner: any;
   let player: any;
   let player2: any;
@@ -13,26 +12,14 @@ describe("GuardianOfGalaxETH", function () {
   beforeEach(async function () {
     [owner, player, player2, player3] = await ethers.getSigners();
 
-    const MockERC20 = await ethers.getContractFactory("MockERC20");
-    ethToken = await MockERC20.deploy("ETH Token", "ETH");
-    await ethToken.waitForDeployment();
-
     const GuardianOfGalaxETH = await ethers.getContractFactory("GuardianOfGalaxETH");
-    guardianOfGalaxETH = await GuardianOfGalaxETH.deploy(await ethToken.getAddress());
+    guardianOfGalaxETH = await GuardianOfGalaxETH.deploy();
     await guardianOfGalaxETH.waitForDeployment();
-
-    await ethToken.mint(player.address, ethers.parseEther("100"));
-    await ethToken.mint(player2.address, ethers.parseEther("100"));
-    await ethToken.mint(player3.address, ethers.parseEther("100"));
-
-    await ethToken.connect(player).approve(await guardianOfGalaxETH.getAddress(), ethers.parseEther("100"));
-    await ethToken.connect(player2).approve(await guardianOfGalaxETH.getAddress(), ethers.parseEther("100"));
-    await ethToken.connect(player3).approve(await guardianOfGalaxETH.getAddress(), ethers.parseEther("100"));
   });
 
   describe("Collect Minerals", function () {
     it("Should allow player to collect minerals", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
       await guardianOfGalaxETH.connect(player).collectMinerals();
 
       const playerInfo = await guardianOfGalaxETH.players(player.address);
@@ -40,7 +27,7 @@ describe("GuardianOfGalaxETH", function () {
     });
 
     it("Should not allow collection before cooldown period", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
       await guardianOfGalaxETH.connect(player).collectMinerals();
 
       await expect(guardianOfGalaxETH.connect(player).collectMinerals())
@@ -48,7 +35,7 @@ describe("GuardianOfGalaxETH", function () {
     });
 
     it("Should allow collection after cooldown period", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
       await guardianOfGalaxETH.connect(player).collectMinerals();
 
       await time.increase(3600); // Increase time by 1 hour
@@ -61,8 +48,8 @@ describe("GuardianOfGalaxETH", function () {
 
   describe("Alliance Mechanism", function () {
     it("Should allow players to form an alliance", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player2).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
 
       await guardianOfGalaxETH.connect(player).proposeAlliance(player2.address);
       await guardianOfGalaxETH.connect(player2).acceptAlliance(player.address);
@@ -71,8 +58,8 @@ describe("GuardianOfGalaxETH", function () {
     });
 
     it("Should allow allied players to defeat an obstacle", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player2).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
 
       await guardianOfGalaxETH.connect(player).proposeAlliance(player2.address);
       await guardianOfGalaxETH.connect(player2).acceptAlliance(player.address);
@@ -93,8 +80,8 @@ describe("GuardianOfGalaxETH", function () {
     });
 
     it("Should not allow non-allied players to defeat an obstacle together", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player2).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
 
       await expect(guardianOfGalaxETH.connect(player).defeatObstacle(player2.address))
         .to.be.revertedWith("Not allied");
@@ -103,9 +90,9 @@ describe("GuardianOfGalaxETH", function () {
 
   describe("Community and Fight Mechanism", function () {
     beforeEach(async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player2).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player3).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player3).joinGame({ value: ethers.parseEther("10") });
     });
 
     it("Should allow players to form a community", async function () {
@@ -116,7 +103,6 @@ describe("GuardianOfGalaxETH", function () {
         .to.emit(guardianOfGalaxETH, "CommunityFormed")
         .withArgs(communityId, members, ethers.parseEther("30"));
 
-      // 使用新的 getCommunityInfo 函数
       const [communityMembers, formationTime, totalStake] = await guardianOfGalaxETH.getCommunityInfo(communityId);
       console.log("Community members:", communityMembers);
       console.log("Formation time:", formationTime);
@@ -125,15 +111,12 @@ describe("GuardianOfGalaxETH", function () {
       expect(communityMembers.length).to.equal(3);
       expect(totalStake).to.equal(ethers.parseEther("30"));
 
-      // 检查社区是否成功创建
       const communityAfterFormation = await guardianOfGalaxETH.communities(communityId);
       console.log("Community after formation:", communityAfterFormation);
 
-      // 尝试访问社区成员
       const firstMember = await guardianOfGalaxETH.getCommunityMember(communityId, 0);
       console.log("First member:", firstMember);
 
-      // 检查 startVoting 函数
       await guardianOfGalaxETH.connect(player).startVoting(communityId);
       console.log("Voting started successfully");
     });
@@ -150,7 +133,6 @@ describe("GuardianOfGalaxETH", function () {
       await guardianOfGalaxETH.connect(player).formCommunity([player.address, player2.address, player3.address]);
       await guardianOfGalaxETH.connect(owner).generateMoloch();
 
-      // Add an artifact for testing
       await guardianOfGalaxETH.connect(owner).addArtifact("Test Artifact", 1000);
 
       const initialBalance = await guardianOfGalaxETH.players(player.address);
@@ -168,17 +150,15 @@ describe("GuardianOfGalaxETH", function () {
     let communityId: string;
 
     beforeEach(async function () {
-      await guardianOfGalaxETH.connect(player).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player2).joinGame(ethers.parseEther("10"));
-      await guardianOfGalaxETH.connect(player3).joinGame(ethers.parseEther("10"));
+      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
+      await guardianOfGalaxETH.connect(player3).joinGame({ value: ethers.parseEther("10") });
 
       const members = [player.address, player2.address, player3.address];
       communityId = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(["address[]"], [members]));
       
-      // 创建社区
       await guardianOfGalaxETH.connect(player).formCommunity(members);
 
-      // 使用 getCommunityInfo 函数获取社区信息
       const [communityMembers, formationTime, totalStake] = await guardianOfGalaxETH.getCommunityInfo(communityId);
       console.log("Community members:", communityMembers);
       console.log("Formation time:", formationTime);
@@ -187,16 +167,13 @@ describe("GuardianOfGalaxETH", function () {
       expect(communityMembers.length).to.equal(3);
       expect(totalStake).to.equal(ethers.parseEther("30"));
 
-      // 添加一些神器用于测试
       await guardianOfGalaxETH.connect(owner).addArtifact("Excalibur", 1000);
       await guardianOfGalaxETH.connect(owner).addArtifact("Mjolnir", 1200);
     });
 
     it("Should allow community members to vote for artifacts", async function () {
-      // 开始投票
       await guardianOfGalaxETH.connect(player).startVoting(communityId);
 
-      // 给玩家一些 GETH 用于投票
       await guardianOfGalaxETH.connect(player).collectMinerals();
       await guardianOfGalaxETH.connect(player2).collectMinerals();
       await guardianOfGalaxETH.connect(player3).collectMinerals();
@@ -207,23 +184,19 @@ describe("GuardianOfGalaxETH", function () {
     });
 
     it("Should end voting and determine the winning artifact", async function () {
-      // 开始投票
       await guardianOfGalaxETH.connect(player).startVoting(communityId);
 
-      // 给玩家一些 GETH 用于投票
       await guardianOfGalaxETH.connect(player).collectMinerals();
       await guardianOfGalaxETH.connect(player2).collectMinerals();
       await guardianOfGalaxETH.connect(player3).collectMinerals();
 
-      // 进行投票
       await guardianOfGalaxETH.connect(player).voteForArtifact(communityId, 0, 2);
       await guardianOfGalaxETH.connect(player2).voteForArtifact(communityId, 1, 3);
       await guardianOfGalaxETH.connect(player3).voteForArtifact(communityId, 0, 1);
 
-      // 直接结束投票，不需要等待时间
       await expect(guardianOfGalaxETH.connect(player).endVoting(communityId))
         .to.emit(guardianOfGalaxETH, "VotingEnded")
-        .withArgs(communityId, 0); // 假设 Excalibur (index 0) 赢得了投票
+        .withArgs(communityId, 0);
     });
   });
 });

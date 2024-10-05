@@ -1,32 +1,39 @@
+"use client"
 import React from 'react';
-import { IDKitWidget } from '@worldcoin/idkit';
+import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit';
 
 type LoginProps = {
-  onSuccess: () => void;
+  onVerificationSuccess: () => void;
 };
 
-const Login: React.FC<LoginProps> = ({ onSuccess }) => {
-  const handleVerify = (proof: any) => {
-    console.log('Proof:', proof);
-    // Here you would typically send the proof to your backend for verification
-    onSuccess();
+const Login: React.FC<LoginProps> = ({ onVerificationSuccess }) => {
+  // TODO: Implement server-side verification
+  const verifyProof = async (proof: any) => {
+    console.log("Proof received:", proof);
+    // For now, we'll assume the proof is valid
+    return true;
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-4xl font-bold mb-8">Welcome to Guardians of GalaxETH</h1>
+    <div>
       <IDKitWidget
-        app_id="app_staging_584affc2713e9638173a50808575ec3d" // Replace with your Worldcoin app ID
+        app_id="app_staging_584affc2713e9638173a50808575ec3d"
         action="login"
-        onSuccess={handleVerify}
-        handleVerify={handleVerify}
-        verification_level="device"
-        is_staging={true}
+        verification_level={VerificationLevel.Device}
+        handleVerify={verifyProof}
+        onSuccess={onVerificationSuccess}
       >
-        {({ open }) => <button onClick={open} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Login with Worldcoin</button>}
+        {({ open }) => (
+          <button
+            onClick={open}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Verify with World ID
+          </button>
+        )}
       </IDKitWidget>
     </div>
   );
-};
+}
 
 export default Login;
