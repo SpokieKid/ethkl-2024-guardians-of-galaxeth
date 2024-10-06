@@ -44,7 +44,7 @@ export default function Home() {
 
   const handleLoginSuccess = (worldIdHash: string, walletAddress: string) => {
     setIsLoggedIn(true);
-    setUserIdentifier(walletAddress); // 使用钱包地址
+    setUserIdentifier(walletAddress);
   };
 
   const handleJoinGame = async () => {
