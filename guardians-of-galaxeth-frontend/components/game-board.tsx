@@ -42,10 +42,9 @@ interface GameBoardProps {
   contract: ethers.Contract | null;
   pendingGETH: number;
   setPendingGETH: (value: number | ((prevValue: number) => number)) => void;
-  isInCommunity: boolean;
 }
 
-export default function GameBoard({ userIdentifier, initialStage, contract, pendingGETH, setPendingGETH, isInCommunity }: GameBoardProps) {
+export default function GameBoard({ userIdentifier, initialStage, contract, pendingGETH, setPendingGETH }: GameBoardProps) {
   const [stage, setStage] = useState(initialStage);
   const [stakeValue, setStakeValue] = useState(0);
   const [reputation, setReputation] = useState(0);
@@ -88,6 +87,10 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
     };
     fetchAllies();
   }, [contract, userIdentifier]);
+
+  const handleStageChange = (newStage: string) => {
+    setStage(newStage);
+  };
 
   const handleCollectGETH = async () => {
     if (contract && pendingGETH > 0) {
@@ -132,17 +135,30 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
         await tx.wait();
         alert("Moloch defeated successfully!");
         await updateGethBalance();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fighting Moloch:", error);
-        if (error instanceof Error) {
-          alert(`Failed to fight Moloch: ${error.message}`);
-        }
+        alert(`Failed to fight Moloch: ${error.message}`);
       }
     }
   };
 
   return (
     <div className="w-full h-full bg-transparent relative">
+      {/* 状态面板 */}
+      <div className="absolute top-0 left-0 z-30 p-4 bg-gray-800 bg-opacity-75 text-white rounded-br-lg">
+        <p>Staking Power: {stakeValue.toFixed(5)} ETH</p>
+        <p>Reputation: {reputation}</p>
+        <p>GETH Balance: {gethBalance}</p>
+        <p>Pending GETH: {pendingGETH}</p>
+        <button 
+          onClick={handleCollectGETH} 
+          className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
+          disabled={pendingGETH === 0}
+        >
+          Collect GETH
+        </button>
+      </div>
+
       {/* 游戏阶段切换按钮 */}
       <div className="absolute top-0 right-0 z-30 p-4 flex space-x-2">
         <button onClick={() => setStage('collect')} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Collect</button>
@@ -153,31 +169,15 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
       {/* 游戏内容 */}
       <div className="w-full h-full">
         {stage === 'collect' && (
-          <>
-            {/* 状态面板 - 只在 Collect 页面显示 */}
-            <div className="absolute top-0 left-0 z-30 p-4 bg-gray-800 bg-opacity-75 text-white rounded-br-lg">
-              <p>Staking Power: {stakeValue.toFixed(5)} ETH</p>
-              <p>Reputation: {reputation}</p>
-              <p>GETH Balance: {gethBalance}</p>
-              <p>Pending GETH: {pendingGETH}</p>
-              <button 
-                onClick={handleCollectGETH} 
-                className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
-                disabled={pendingGETH === 0}
-              >
-                Collect GETH
-              </button>
-            </div>
-            <Collect 
-              userIdentifier={userIdentifier} 
-              contract={contract} 
-              pendingGETH={pendingGETH}
-              setPendingGETH={setPendingGETH}
-              gethBalance={gethBalance}
-              setGethBalance={setGethBalance}
-              allies={allies}
-            />
-          </>
+          <Collect 
+            userIdentifier={userIdentifier} 
+            contract={contract} 
+            pendingGETH={pendingGETH}
+            setPendingGETH={setPendingGETH}
+            gethBalance={gethBalance}
+            setGethBalance={setGethBalance}
+            allies={allies}
+          />
         )}
         {stage === 'alliance' && <Alliance userIdentifier={userIdentifier} contract={contract} />}
         {stage === 'fight' && (
