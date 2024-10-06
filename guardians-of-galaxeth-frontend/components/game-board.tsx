@@ -5,7 +5,36 @@ import { ethers } from 'ethers';
 import Collect from './collect';
 import Alliance from './alliance';
 import Fight from './fight';
-import { useRouter } from 'next/navigation';
+import MolochBattle from './MolochBattle';
+
+// Define the Artifact interface
+interface Artifact {
+  id: number;
+  name: string;
+  power: number;
+  description: string;
+}
+
+const PRESET_ARTIFACTS: Artifact[] = [
+  { 
+    id: 0, 
+    name: "ZK Shield Protocol", 
+    power: 200, 
+    description: "Protect privacy using zero-knowledge proofs, preventing Moloch from exploiting sensitive information." 
+  },
+  { 
+    id: 1, 
+    name: "Satoshi's Wisdom Scroll", 
+    power: 180, 
+    description: "Strengthen the consensus mechanism to block Moloch's attack on the network's consensus algorithm." 
+  },
+  { 
+    id: 2, 
+    name: "Moodeng's Cute Emojis", 
+    power: 150, 
+    description: "Distract Moloch with a barrage of cute emojis and memes, causing confusion and preventing it from focusing on the network's vulnerability." 
+  }
+];
 
 interface GameBoardProps {
   userIdentifier: string;
@@ -13,32 +42,26 @@ interface GameBoardProps {
   contract: ethers.Contract | null;
   pendingGETH: number;
   setPendingGETH: (value: number | ((prevValue: number) => number)) => void;
+  isInCommunity: boolean;
 }
 
-export default function GameBoard({ userIdentifier, initialStage, contract, pendingGETH, setPendingGETH }: GameBoardProps) {
+export default function GameBoard({ userIdentifier, initialStage, contract, pendingGETH, setPendingGETH, isInCommunity }: GameBoardProps) {
   const [stage, setStage] = useState(initialStage);
   const [stakeValue, setStakeValue] = useState(0);
   const [reputation, setReputation] = useState(0);
   const [gethBalance, setGethBalance] = useState(0);
-  const router = useRouter();
-  const [allies, setAllies] = useState<any[]>([]);
+  const [allies, setAllies] = useState<string[]>([]);
+  const [artifacts] = useState<Artifact[]>(PRESET_ARTIFACTS);
 
   useEffect(() => {
     const fetchPlayerInfo = async () => {
       if (contract && userIdentifier) {
         try {
           const playerInfo = await contract.players(userIdentifier);
-          console.log("Player info from contract:", playerInfo);
           setStakeValue(parseFloat(ethers.utils.formatEther(playerInfo.stakedAmount)));
           setReputation(playerInfo.reputation.toNumber());
           setGethBalance(playerInfo.gethBalance.toNumber());
           setPendingGETH(playerInfo.pendingGETH.toNumber());
-          console.log("Updated state:", {
-            stakeValue: parseFloat(ethers.utils.formatEther(playerInfo.stakedAmount)),
-            reputation: playerInfo.reputation.toNumber(),
-            gethBalance: playerInfo.gethBalance.toNumber(),
-            pendingGETH: playerInfo.pendingGETH.toNumber()
-          });
         } catch (error) {
           console.error("Error fetching player info:", error);
         }
@@ -66,33 +89,20 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
     fetchAllies();
   }, [contract, userIdentifier]);
 
-  const handleStageChange = (newStage: string) => {
-    setStage(newStage);
-    router.push(`?stage=${newStage}`);
-  };
-
   const handleCollectGETH = async () => {
     if (contract && pendingGETH > 0) {
       try {
-        console.log("Before collection - GETH Balance:", gethBalance, "Pending GETH:", pendingGETH);
         const tx = await contract.collectGETH();
         await tx.wait();
         
-        // 立即更新前端状态
-        setGethBalance(prevBalance => {
-          const newBalance = prevBalance + pendingGETH;
-          console.log("After collection (frontend) - New GETH Balance:", newBalance);
-          return newBalance;
-        });
+        setGethBalance(prevBalance => prevBalance + pendingGETH);
         setPendingGETH(0);
 
-        // 添加小延迟后再次获取最新的链上数据
         setTimeout(async () => {
           const playerInfo = await contract.players(userIdentifier);
-          console.log("After collection (blockchain) - GETH Balance:", playerInfo.gethBalance.toNumber(), "Pending GETH:", playerInfo.pendingGETH.toNumber());
           setGethBalance(playerInfo.gethBalance.toNumber());
           setPendingGETH(playerInfo.pendingGETH.toNumber());
-        }, 2000); // 2秒延迟
+        }, 2000);
 
       } catch (error) {
         console.error("Error collecting GETH:", error);
@@ -111,35 +121,63 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
     }
   };
 
+  const handleSelectArtifact = (artifactId: number) => {
+    console.log("Selected artifact:", artifactId);
+  };
+
+  const handleFightMoloch = async (molochId: number, artifactId: number) => {
+    if (contract) {
+      try {
+        const tx = await contract.fightMoloch(molochId, artifactId);
+        await tx.wait();
+        alert("Moloch defeated successfully!");
+        await updateGethBalance();
+      } catch (error) {
+        console.error("Error fighting Moloch:", error);
+        if (error instanceof Error) {
+          alert(`Failed to fight Moloch: ${error.message}`);
+        }
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
-      <div className="flex justify-between p-4 bg-gray-800">
-        <div>
-          <p className="text-lg">Staking Power: {stakeValue} ETH</p>
-          <p className="text-lg">Reputation: {reputation}</p>
-          <p className="text-lg">GETH Balance: {gethBalance}</p>
-          <p className="text-lg">Pending GETH: {pendingGETH}</p>
-          <button onClick={handleCollectGETH} className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mt-2">
-            Collect GETH
-          </button>
-        </div>
-        <div className="space-x-4">
-          <button onClick={() => handleStageChange('collect')} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Collect</button>
-          <button onClick={() => handleStageChange('alliance')} className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Alliance</button>
-          <button onClick={() => handleStageChange('fight')} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Fight</button>
-        </div>
+    <div className="w-full h-full bg-transparent relative">
+      {/* 游戏阶段切换按钮 */}
+      <div className="absolute top-0 right-0 z-30 p-4 flex space-x-2">
+        <button onClick={() => setStage('collect')} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Collect</button>
+        <button onClick={() => setStage('alliance')} className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Alliance</button>
+        <button onClick={() => setStage('fight')} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Fight</button>
       </div>
-      <div className="flex-grow p-4">
+
+      {/* 游戏内容 */}
+      <div className="w-full h-full">
         {stage === 'collect' && (
-          <Collect 
-            userIdentifier={userIdentifier} 
-            contract={contract} 
-            pendingGETH={pendingGETH}
-            setPendingGETH={setPendingGETH}
-            gethBalance={gethBalance}
-            setGethBalance={setGethBalance}
-            allies={allies} // Pass the allies prop here
-          />
+          <>
+            {/* 状态面板 - 只在 Collect 页面显示 */}
+            <div className="absolute top-0 left-0 z-30 p-4 bg-gray-800 bg-opacity-75 text-white rounded-br-lg">
+              <p>Staking Power: {stakeValue.toFixed(5)} ETH</p>
+              <p>Reputation: {reputation}</p>
+              <p>GETH Balance: {gethBalance}</p>
+              <p>Pending GETH: {pendingGETH}</p>
+              <button 
+                onClick={handleCollectGETH} 
+                className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
+                disabled={pendingGETH === 0}
+              >
+                Collect GETH
+              </button>
+            </div>
+            <Collect 
+              userIdentifier={userIdentifier} 
+              contract={contract} 
+              pendingGETH={pendingGETH}
+              setPendingGETH={setPendingGETH}
+              gethBalance={gethBalance}
+              setGethBalance={setGethBalance}
+              allies={allies}
+            />
+          </>
         )}
         {stage === 'alliance' && <Alliance userIdentifier={userIdentifier} contract={contract} />}
         {stage === 'fight' && (
@@ -148,6 +186,17 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
             contract={contract} 
             gethBalance={gethBalance}
             updateGethBalance={updateGethBalance}
+            artifacts={artifacts}
+          />
+        )}
+        {stage === 'moloch-battle' && (
+          <MolochBattle
+            userIdentifier={userIdentifier}
+            communityPower={gethBalance}
+            artifacts={artifacts}
+            contract={contract}
+            onSelectArtifact={handleSelectArtifact}
+            onFightMoloch={handleFightMoloch}
           />
         )}
       </div>

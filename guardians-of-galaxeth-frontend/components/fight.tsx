@@ -10,91 +10,47 @@ interface FightProps {
   contract: ethers.Contract | null;
   gethBalance: number;
   updateGethBalance: () => Promise<void>;
+  artifacts: Artifact[]; // 添加这一行
 }
 
-type Artifact = {
+interface Artifact {
   id: number;
   name: string;
   power: number;
-};
+  description: string;
+}
 
-export default function Fight({ userIdentifier, contract, gethBalance, updateGethBalance }: FightProps) {
+export default function Fight({ userIdentifier, contract, gethBalance, updateGethBalance, artifacts }: FightProps) {
   const [communityPower, setCommunityPower] = useState(0);
-  const [molochPower, setMolochPower] = useState(0);
-  const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [molochHealth, setMolochHealth] = useState(100);
 
   useEffect(() => {
     const fetchBattleInfo = async () => {
       if (contract && userIdentifier) {
         try {
-          console.log("Assuming user is always in a community");
-          // 移除社区检查逻辑
-
-          // 假设玩家总是有一个社区ID
-          const communityId = ethers.utils.id(userIdentifier);
-          console.log("Player's assumed community ID:", communityId);
-
-          // 假设社区总是有一定的GETH
-          const assumedCommunityGETH = 1000; // 或者其他合适的默认值
-          console.log("Assumed community GETH:", assumedCommunityGETH);
-
-          setCommunityPower(assumedCommunityGETH);
-
-          const moloch = await contract.currentMoloch();
-          console.log("Current Moloch:", moloch);
-
-          if (moloch.attackPower.toNumber() === 0) {
-            console.log("Moloch not generated yet");
-            alert("Moloch has not been generated yet. Please wait for the game admin to generate Moloch.");
-            return;
-          }
-
-          setMolochPower(moloch.attackPower.toNumber());
-          setMolochHealth(100);
-
-          // 保留获取神器的逻辑
-          const artifactCount = await contract.getArtifactCount();
-          const artifactsData = await Promise.all(
-            Array(artifactCount.toNumber()).fill(0).map(async (_, index) => {
-              const artifact = await contract.artifacts(index);
-              return {
-                id: index,
-                name: artifact.name,
-                power: artifact.power.toNumber()
-              };
-            })
-          );
-          setArtifacts(artifactsData);
+          // Fetch community power (assuming it's equal to the player's GETH balance for simplicity)
+          setCommunityPower(Number(gethBalance));
         } catch (error) {
           console.error("Error fetching battle info:", error);
           alert("Error fetching battle information. Please try again.");
         }
-      } else {
-        console.log("Contract or userIdentifier not available", { contract, userIdentifier });
       }
     };
     fetchBattleInfo();
-  }, [contract, userIdentifier]);
+  }, [contract, userIdentifier, gethBalance]);
 
   const handleSelectArtifact = (artifactId: number) => {
-    setSelectedArtifact(artifactId);
+    console.log("Selected artifact:", artifactId);
+    // You can add more logic here if needed
   };
 
-  const handleFightMoloch = async () => {
-    if (selectedArtifact === null || !contract) return;
+  const handleFightMoloch = async (molochId: number, artifactId: number) => {
+    if (!contract) return;
 
     try {
-      const tx = await contract.fightMoloch(selectedArtifact);
+      const tx = await contract.fightMoloch(molochId, artifactId);
       await tx.wait();
       alert("Battle completed! Check your updated balance and reputation.");
-      // Refresh battle info after fight
-      const moloch = await contract.currentMoloch();
-      setMolochPower(moloch.attackPower.toNumber());
-      setMolochHealth(prevHealth => Math.max(0, prevHealth - 20)); // Reduce Moloch health by 20%
-      setSelectedArtifact(null);
-      await updateGethBalance(); // Update GETH balance after fight
+      await updateGethBalance();
     } catch (error) {
       console.error("Error fighting Moloch:", error);
       alert("Failed to fight Moloch. Please try again.");
@@ -115,12 +71,12 @@ export default function Fight({ userIdentifier, contract, gethBalance, updateGet
         />
       </div>
       <MolochBattle
-        molochPower={molochPower}
-        communityPower={communityPower}
+        userIdentifier={userIdentifier}
+        communityPower={Number(communityPower)}
         artifacts={artifacts}
+        contract={contract}
         onSelectArtifact={handleSelectArtifact}
         onFightMoloch={handleFightMoloch}
-        molochHealth={molochHealth}
       />
     </div>
   );

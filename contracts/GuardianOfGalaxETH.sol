@@ -28,12 +28,14 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     }
 
     struct Moloch {
+        address creator;
         uint256 attackPower;
         string weakness;
         bool isDefeated;
     }
 
     struct Artifact {
+        uint256 id;  // 添加这一行
         string name;
         uint256 power;
     }
@@ -55,7 +57,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     mapping(address => bytes32) public playerCommunity;
     mapping(bytes32 => mapping(address => Vote)) public communityVotes;
     mapping(bytes32 => uint256) public communityVotingEndTime;
-    Moloch public currentMoloch;
+    Moloch[] public molochs;
     Artifact[] public artifacts;
     mapping(address => uint256) public lastCollectionTime;
     uint256 public constant GETH_PER_COLLECTION = 1 ether; // 每次收集获得 1 GETH
@@ -75,14 +77,13 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     event AllianceFormed(address indexed player1, address indexed player2);
     event ObstacleDefeated(address indexed player1, address indexed player2, uint256 difficulty, uint256 reward);
     event CommunityFormed(bytes32 indexed communityId, address[] members, uint256 totalStake);
-    event MolochAppeared(uint256 attackPower, string weakness);
-    event MolochDefeated(bytes32 indexed communityId, uint256 reward);
-    event ArtifactAdded(string name, uint256 power);
+    event MolochGenerated(uint256 indexed molochId, address indexed creator, uint256 attackPower);
+    event MolochDefeated(uint256 indexed molochId, bytes32 indexed communityId, uint256 reward);
+    event ArtifactAdded(uint256 indexed id, string name, uint256 power);
     event VoteCast(address indexed voter, bytes32 indexed communityId, uint256 artifactIndex, uint256 voteCount);
     event VotingEnded(bytes32 indexed communityId, uint256 winningArtifactIndex);
     event PlayerLeft(address indexed player, uint256 totalAmount);
     event ObstacleGenerated(uint256 difficulty, uint256 reward);
-    event MolochGenerated(uint256 attackPower);
     event GETHAdded(address indexed player, uint256 amount);
 
     // 添加这个映射来跟踪所有玩家的地址
@@ -268,12 +269,12 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         emit CommunityFormed(communityId, _members, totalStake);
     }
 
-    function generateMoloch() external onlyOwner {
-        require(currentMoloch.attackPower == 0, "Moloch already exists");
-        uint256 attackPower = uint256(keccak256(abi.encodePacked(block.timestamp))) % 1000 + 500;
+    function generateMoloch() external {
+        require(players[msg.sender].isActive, "Player is not active");
+        uint256 attackPower = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 1000 + 500;
         string memory weakness = generateWeakness();
-        currentMoloch = Moloch(attackPower, weakness, false);
-        emit MolochGenerated(attackPower);
+        molochs.push(Moloch(msg.sender, attackPower, weakness, false));
+        emit MolochGenerated(molochs.length - 1, msg.sender, attackPower);
     }
 
     function generateWeakness() internal view returns (string memory) {
@@ -297,10 +298,13 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         emit VoteCast(msg.sender, _communityId, _artifactIndex, _voteCount);
     }
 
-    function fightMoloch(uint256 _artifactIndex) external nonReentrant {
+    function fightMoloch(uint256 _molochId, uint256 _artifactIndex) external nonReentrant {
+        require(_molochId < molochs.length, "Invalid Moloch ID");
+        Moloch storage moloch = molochs[_molochId];
+        require(!moloch.isDefeated, "Moloch already defeated");
+
         bytes32 communityId = playerCommunity[msg.sender];
         require(communityId != bytes32(0), "Not part of a community");
-        require(!currentMoloch.isDefeated, "No active Moloch");
 
         Community storage community = communities[communityId];
         Artifact memory chosenArtifact = artifacts[_artifactIndex];
@@ -313,13 +317,13 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
 
         // Add artifact power to community power
         uint256 totalCommunityPower = communityPower + chosenArtifact.power;
-        require(totalCommunityPower > currentMoloch.attackPower, "Not strong enough to defeat Moloch");
+        require(totalCommunityPower > moloch.attackPower, "Not strong enough to defeat Moloch");
 
-        uint256 reward = calculateReward(currentMoloch.attackPower);
+        uint256 reward = calculateReward(moloch.attackPower);
         distributeCommunityReward(communityId, reward);
 
-        currentMoloch.isDefeated = true;
-        emit MolochDefeated(communityId, reward);
+        moloch.isDefeated = true;
+        emit MolochDefeated(_molochId, communityId, reward);
     }
 
     function calculateReward(uint256 _molochPower) internal pure returns (uint256) {
@@ -334,9 +338,14 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         }
     }
 
-    function addArtifact(string memory _name, uint256 _power) external onlyOwner {
-        artifacts.push(Artifact(_name, _power));
-        emit ArtifactAdded(_name, _power);
+    function addArtifact(string memory _name, uint256 _power) public onlyOwner {
+        uint256 newArtifactId = artifacts.length;
+        artifacts.push(Artifact({
+            id: newArtifactId,
+            name: _name,
+            power: _power
+        }));
+        emit ArtifactAdded(newArtifactId, _name, _power);
     }
 
     function startVoting(bytes32 _communityId) external {
@@ -350,10 +359,9 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         require(communityVotingEndTime[_communityId] != 0, "Voting never started");
 
         uint256[] memory voteCounts = new uint256[](artifacts.length);
-        Community storage community = communities[_communityId];
 
-        for (uint i = 0; i < community.members.length; i++) {
-            address member = community.members[i];
+        for (uint i = 0; i < communities[_communityId].members.length; i++) {
+            address member = communities[_communityId].members[i];
             Vote memory vote = communityVotes[_communityId][member];
             voteCounts[vote.artifactIndex] += vote.voteCount;
         }
@@ -386,7 +394,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
         return communities[_communityId].members[_index];
     }
 
-    function getCommunityInfo(bytes32 _communityId) public view returns (address[] memory, uint256, uint256, uint256) {
+    function getCommunityInfo() public view returns (address[] memory, uint256, uint256, uint256) {
         address[] memory members = new address[](1);
         members[0] = msg.sender;
         uint256 totalGETH = players[msg.sender].gethBalance;
@@ -438,28 +446,29 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     }
 
     function getArtifactCount() public view returns (uint256) {
-    return artifacts.length;
-}
+        return artifacts.length;
+    }
+
     function getAllyCount(address player) public view returns (uint256) {
-    return playerAlliances[player].length;
-}
+        return playerAlliances[player].length;
+    }
 
-function getAlly(address player, uint256 index) public view returns (address) {
-    require(index < playerAlliances[player].length, "Index out of bounds");
-    return playerAlliances[player][index];
-}
+    function getAlly(address player, uint256 index) public view returns (address) {
+        require(index < playerAlliances[player].length, "Index out of bounds");
+        return playerAlliances[player][index];
+    }
 
-function isPlayerInCommunity(address _player) public pure returns (bool) {
-    return true; // 始终返回 true
-}
+    function isPlayerInCommunity() public pure returns (bool) {
+        return true; // 始终返回 true
+    }
 
-function getPlayerCommunityId(address _player) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(_player)); // 返回一个基于玩家地址的固定社区ID
-}
+    function getPlayerCommunityId(address _player) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_player)); // 返回一个基于玩家地址的固定社区ID
+    }
 
-function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOwner {
-    playerCommunity[_player] = _communityId;
-}
+    function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOwner {
+        playerCommunity[_player] = _communityId;
+    }
 
     function getUserVotingPower(address user) public view returns (uint256) {
         return userVotingPower[user];
@@ -481,10 +490,31 @@ function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOw
 
     function tallyVotes() public view returns (uint256 winningArtifactId, uint256 maxVotes) {
         for (uint256 i = 0; i < artifacts.length; i++) {
-            if (artifactVotes[artifacts[i].id] > maxVotes) {
-                maxVotes = artifactVotes[artifacts[i].id];
-                winningArtifactId = artifacts[i].id;
+            if (artifactVotes[i] > maxVotes) {  // 使用索引 i 而不是 artifacts[i].id
+                maxVotes = artifactVotes[i];
+                winningArtifactId = i;  // 使用索引 i 作为 artifact ID
             }
         }
+    }
+
+    // Add a function to get all active Molochs
+    function getActiveMolochs() public view returns (uint256[] memory) {
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < molochs.length; i++) {
+            if (!molochs[i].isDefeated) {
+                activeCount++;
+            }
+        }
+        
+        uint256[] memory activeMolochIds = new uint256[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < molochs.length; i++) {
+            if (!molochs[i].isDefeated) {
+                activeMolochIds[index] = i;
+                index++;
+            }
+        }
+        
+        return activeMolochIds;
     }
 }

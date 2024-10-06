@@ -6,9 +6,15 @@ type AllianceFormationProps = {
   onProposeAlliance: (address: string) => void;
   onAcceptAlliance: (address: string) => void;
   onDefeatObstacle: (address: string) => void;
+  onGenerateMoloch: () => void;
 };
 
-const AllianceFormation: React.FC<AllianceFormationProps> = ({ onProposeAlliance, onAcceptAlliance, onDefeatObstacle }) => {
+const AllianceFormation: React.FC<AllianceFormationProps> = ({
+  onProposeAlliance,
+  onAcceptAlliance,
+  onDefeatObstacle,
+  onGenerateMoloch
+}) => {
   const [allyAddress, setAllyAddress] = useState('');
 
   return (
@@ -69,6 +75,21 @@ const AllianceFormation: React.FC<AllianceFormationProps> = ({ onProposeAlliance
             className="mr-2"
           />
           Defeat Obstacle
+        </button>
+      </div>
+      <div className="flex justify-between mt-4">
+        <button
+          onClick={onGenerateMoloch}
+          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center"
+        >
+          <Image
+            src={allyUfoIcon}
+            alt="Generate Moloch"
+            width={20}
+            height={20}
+            className="mr-2"
+          />
+          Generate Moloch
         </button>
       </div>
     </div>

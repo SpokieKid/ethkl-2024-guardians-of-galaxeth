@@ -12,15 +12,15 @@ const Spaceship: React.FC<SpaceshipProps> = ({ position }) => {
         position: 'absolute',
         left: `${position.x}px`,
         top: `${position.y}px`,
-        width: '50px',
-        height: '50px',
+        width: '100px', // 增大到原来的 2 倍
+        height: '100px', // 增大到原来的 2 倍
       }}
     >
       <Image
-        src="/spaceship.png"  // 假设您将图像保存为 public/spaceship.png
+        src="/spaceship.png"
         alt="Spaceship"
-        width={50}
-        height={50}
+        width={100} // 增大到原来的 2 倍
+        height={100} // 增大到原来的 2 倍
         priority
       />
     </div>

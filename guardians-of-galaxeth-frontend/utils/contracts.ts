@@ -58,6 +58,12 @@ export const contractABI = [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
         "indexed": false,
         "internalType": "string",
         "name": "name",
@@ -140,24 +146,11 @@ export const contractABI = [
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
-        "name": "attackPower",
+        "name": "molochId",
         "type": "uint256"
       },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "weakness",
-        "type": "string"
-      }
-    ],
-    "name": "MolochAppeared",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
       {
         "indexed": true,
         "internalType": "bytes32",
@@ -177,6 +170,18 @@ export const contractABI = [
   {
     "anonymous": false,
     "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "molochId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
       {
         "indexed": false,
         "internalType": "uint256",
@@ -555,8 +560,32 @@ export const contractABI = [
         "type": "uint256"
       }
     ],
+    "name": "artifactVotes",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "name": "artifacts",
     "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
       {
         "internalType": "string",
         "name": "name",
@@ -652,29 +681,6 @@ export const contractABI = [
   },
   {
     "inputs": [],
-    "name": "currentMoloch",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "attackPower",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "weakness",
-        "type": "string"
-      },
-      {
-        "internalType": "bool",
-        "name": "isDefeated",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "currentObstacle",
     "outputs": [
       {
@@ -721,6 +727,11 @@ export const contractABI = [
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "_molochId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "_artifactIndex",
         "type": "uint256"
       }
@@ -755,6 +766,19 @@ export const contractABI = [
     "name": "generateObstacle",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getActiveMolochs",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -827,13 +851,7 @@ export const contractABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "_communityId",
-        "type": "bytes32"
-      }
-    ],
+    "inputs": [],
     "name": "getCommunityInfo",
     "outputs": [
       {
@@ -944,6 +962,25 @@ export const contractABI = [
         "type": "bytes32"
       }
     ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserVotingPower",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -972,13 +1009,7 @@ export const contractABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_player",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "name": "isPlayerInCommunity",
     "outputs": [
       {
@@ -987,7 +1018,7 @@ export const contractABI = [
         "type": "bool"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1040,6 +1071,40 @@ export const contractABI = [
     "name": "leaveGame",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "molochs",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "attackPower",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "weakness",
+        "type": "string"
+      },
+      {
+        "internalType": "bool",
+        "name": "isDefeated",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1224,6 +1289,47 @@ export const contractABI = [
     "inputs": [
       {
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "artifactIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "votes",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "submitVotes",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tallyVotes",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "winningArtifactId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxVotes",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "newOwner",
         "type": "address"
       }
@@ -1244,6 +1350,25 @@ export const contractABI = [
     "name": "updateGETH",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userVotingPower",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

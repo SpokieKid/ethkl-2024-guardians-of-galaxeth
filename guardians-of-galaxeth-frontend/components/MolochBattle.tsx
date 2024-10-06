@@ -1,122 +1,116 @@
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 
-// 更新 Artifact 接口
 interface Artifact {
   id: number;
   name: string;
   power: number;
   description: string;
-  icon?: string; // 新增 icon 属性
+}
+
+interface Moloch {
+  id: number;
+  creator: string;
+  attackPower: number;
+  isDefeated: boolean;
 }
 
 type MolochBattleProps = {
-  molochPower: number;
+  userIdentifier: string;
   communityPower: number;
   artifacts: Artifact[];
+  contract: ethers.Contract | null;
   onSelectArtifact: (artifactId: number) => void;
-  onFightMoloch: () => void;
-  molochHealth: number;
+  onFightMoloch: (molochId: number, artifactId: number) => void;
 };
 
 const MolochBattle: React.FC<MolochBattleProps> = ({
-  molochPower,
+  userIdentifier,
   communityPower,
   artifacts,
+  contract,
   onSelectArtifact,
-  onFightMoloch,
-  molochHealth
+  onFightMoloch
 }) => {
+  const [activeMolochs, setActiveMolochs] = useState<Moloch[]>([]);
+  const [selectedMoloch, setSelectedMoloch] = useState<number | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
 
-  // Calculate total community power including the selected artifact's power
-  const totalCommunityPower = communityPower + (selectedArtifact !== null ? artifacts[selectedArtifact]?.power || 0 : 0);
+  useEffect(() => {
+    const fetchActiveMolochs = async () => {
+      if (contract) {
+        try {
+          const molochIds = await contract.getActiveMolochs();
+          const molochs = await Promise.all(
+            molochIds.map(async (id: ethers.BigNumber) => {
+              const moloch = await contract.molochs(id);
+              return {
+                id: id.toNumber(),
+                creator: moloch.creator,
+                attackPower: moloch.attackPower.toNumber(),
+                isDefeated: moloch.isDefeated
+              };
+            })
+          );
+          setActiveMolochs(molochs);
+        } catch (error) {
+          console.error("Error fetching active Molochs:", error);
+        }
+      }
+    };
 
-  const artifactsList: Artifact[] = [
-    {
-      id: 1,
-      name: "ZK Shield Protocol",
-      power: 1000,
-      description: "Protect privacy using zero-knowledge proofs, preventing Moloch from exploiting sensitive information.",
-      icon: "/artifact-sword.png" // 添加图标路径
-    },
-    {
-      id: 2,
-      name: "Satoshi's Wisdom Scroll",
-      power: 1200,
-      description: "Strengthen the consensus mechanism to block Moloch's attack on the network's consensus algorithm.",
-      icon: "/scroll-icon.png" // 添加新的图标
-    },
-    {
-      id: 3,
-      name: "Moodeng's Cute Emojis",
-      power: 800,
-      description: "Distract Moloch with a barrage of cute emojis and memes, causing confusion and preventing it from focusing on the network's vulnerability.",
-      icon: "/moodeng-hippo.png" // 添加新的图标路径
-    }
-  ];
+    fetchActiveMolochs();
+  }, [contract]);
+
+  const handleSelectMoloch = (molochId: number) => {
+    setSelectedMoloch(molochId);
+  };
+
+  const handleSelectArtifact = (artifactId: number) => {
+    setSelectedArtifact(artifactId);
+    onSelectArtifact(artifactId);
+  };
 
   return (
-    <div className="bg-red-900 p-4 rounded-lg text-white">
+    <div className="bg-deep-space-blue p-4 rounded-lg text-neon-yellow">
       <h2 className="text-2xl font-bold mb-4">Moloch Battle</h2>
-      <div className="flex justify-between mb-4">
-        <div>
-          <p>Moloch Power: {molochPower}</p>
-          <p>Moloch Health: {molochHealth}%</p>
-          <div className="w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700">
-            <div className="bg-red-600 h-2.5 rounded-full" style={{ width: `${molochHealth}%` }}></div>
-          </div>
-        </div>
-        <div>
-          <p>Community Power: {communityPower}</p>
-          {selectedArtifact !== null && (
-            <p>Total Power (with artifact): {totalCommunityPower}</p>
-          )}
-        </div>
+      <p className="mb-4">
+        Moloch Threat: Moloch has discovered a privacy vulnerability within the Ethereum network and is attempting to exploit it to compromise security. The community must collectively choose the right public good to counter this threat.
+      </p>
+      <p className="mb-4">
+        Question: Moloch has identified a privacy loophole that threatens the network. Which public good will you and your community choose to stop Moloch's attack?
+      </p>
+      <div className="mb-4">
+        <h3 className="text-xl font-bold mb-2">Select a Moloch to fight</h3>
+        <select onChange={(e) => handleSelectMoloch(Number(e.target.value))} value={selectedMoloch || ''}>
+          <option value="">Select a Moloch</option>
+          {activeMolochs.map((moloch) => (
+            <option key={moloch.id} value={moloch.id}>
+              Moloch {moloch.id} (Power: {moloch.attackPower})
+            </option>
+          ))}
+        </select>
       </div>
       <div className="mb-4">
-        <h3 className="text-xl font-semibold mb-2">Select Artifact:</h3>
-        <p className="mb-2">Moloch has identified a privacy loophole that threatens the network. Which public good will you and your community choose to stop Moloch's attack?</p>
+        <h3 className="text-xl font-bold mb-2">Select an Artifact</h3>
         <div className="grid grid-cols-1 gap-4">
-          {artifactsList.map((artifact) => (
+          {artifacts.map((artifact) => (
             <button
               key={artifact.id}
-              onClick={() => {
-                setSelectedArtifact(artifact.id);
-                onSelectArtifact(artifact.id);
-              }}
-              className={`p-2 rounded flex items-center ${
-                selectedArtifact === artifact.id
-                  ? 'bg-yellow-500 text-black'
-                  : 'bg-gray-700 hover:bg-gray-600'
-              }`}
+              onClick={() => handleSelectArtifact(artifact.id)}
+              className={`p-2 rounded ${selectedArtifact === artifact.id ? 'bg-blue-500' : 'bg-gray-700'}`}
             >
-              {artifact.icon && (
-                <Image
-                  src={artifact.icon}
-                  alt={artifact.name}
-                  width={32}
-                  height={32}
-                  className="mr-2 pixelated"
-                />
-              )}
-              <div>
-                <p className="font-bold">{artifact.name}</p>
-                <p className="text-sm">Power: {artifact.power}</p>
-                <p className="text-xs">{artifact.description}</p>
-              </div>
+              <p className="font-bold">{artifact.name}</p>
+              <p>Power: {artifact.power}</p>
+              <p>{artifact.description}</p>
             </button>
           ))}
         </div>
       </div>
       <button
-        onClick={onFightMoloch}
-        disabled={selectedArtifact === null || totalCommunityPower <= molochPower}
-        className={`w-full py-2 rounded font-bold ${
-          selectedArtifact !== null && totalCommunityPower > molochPower
-            ? 'bg-green-500 hover:bg-green-600'
-            : 'bg-gray-500 cursor-not-allowed'
-        }`}
+        onClick={() => selectedMoloch !== null && selectedArtifact !== null && onFightMoloch(selectedMoloch, selectedArtifact)}
+        disabled={selectedMoloch === null || selectedArtifact === null}
+        className="w-full py-2 rounded font-bold bg-red-500 hover:bg-red-600 disabled:bg-gray-500 disabled:cursor-not-allowed"
       >
         Fight Moloch
       </button>
