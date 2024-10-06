@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 
-type Artifact = {
+// 更新 Artifact 接口
+interface Artifact {
   id: number;
   name: string;
   power: number;
   description: string;
-};
+  icon?: string; // 新增 icon 属性
+}
 
 type MolochBattleProps = {
   molochPower: number;
@@ -35,19 +37,22 @@ const MolochBattle: React.FC<MolochBattleProps> = ({
       id: 1,
       name: "ZK Shield Protocol",
       power: 1000,
-      description: "Protect privacy using zero-knowledge proofs, preventing Moloch from exploiting sensitive information."
+      description: "Protect privacy using zero-knowledge proofs, preventing Moloch from exploiting sensitive information.",
+      icon: "/artifact-sword.png" // 添加图标路径
     },
     {
       id: 2,
       name: "Satoshi's Wisdom Scroll",
       power: 1200,
-      description: "Strengthen the consensus mechanism to block Moloch's attack on the network's consensus algorithm."
+      description: "Strengthen the consensus mechanism to block Moloch's attack on the network's consensus algorithm.",
+      icon: "/scroll-icon.png" // 添加新的图标
     },
     {
       id: 3,
       name: "Moodeng's Cute Emojis",
       power: 800,
-      description: "Distract Moloch with a barrage of cute emojis and memes, causing confusion and preventing it from focusing on the network's vulnerability."
+      description: "Distract Moloch with a barrage of cute emojis and memes, causing confusion and preventing it from focusing on the network's vulnerability.",
+      icon: "/moodeng-hippo.png" // 添加新的图标路径
     }
   ];
 
@@ -80,24 +85,26 @@ const MolochBattle: React.FC<MolochBattleProps> = ({
                 setSelectedArtifact(artifact.id);
                 onSelectArtifact(artifact.id);
               }}
-              className={`p-4 rounded flex flex-col items-start ${
+              className={`p-2 rounded flex items-center ${
                 selectedArtifact === artifact.id
                   ? 'bg-yellow-500 text-black'
                   : 'bg-gray-700 hover:bg-gray-600'
               }`}
             >
-              <div className="flex items-center mb-2">
+              {artifact.icon && (
                 <Image
-                  src={`/artifact-${artifact.id}.png`}
+                  src={artifact.icon}
                   alt={artifact.name}
-                  width={48}
-                  height={48}
-                  className="mr-4 pixelated"
+                  width={32}
+                  height={32}
+                  className="mr-2 pixelated"
                 />
-                <span className="text-lg font-bold">{artifact.name}</span>
+              )}
+              <div>
+                <p className="font-bold">{artifact.name}</p>
+                <p className="text-sm">Power: {artifact.power}</p>
+                <p className="text-xs">{artifact.description}</p>
               </div>
-              <p className="text-sm">{artifact.description}</p>
-              <p className="mt-2 font-semibold">Power: {artifact.power}</p>
             </button>
           ))}
         </div>
