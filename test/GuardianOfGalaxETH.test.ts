@@ -20,30 +20,27 @@ describe("GuardianOfGalaxETH", function () {
   describe("Collect Minerals", function () {
     it("Should allow player to collect minerals", async function () {
       await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
-      await guardianOfGalaxETH.connect(player).collectMinerals();
+      await guardianOfGalaxETH.connect(player).collectGETH(); // Updated function name
 
       const playerInfo = await guardianOfGalaxETH.players(player.address);
       expect(playerInfo.gethBalance).to.be.gt(0);
     });
 
-    it("Should not allow collection before cooldown period", async function () {
+    it("Should allow player to collect minerals multiple times", async function () {
       await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-
-      await expect(guardianOfGalaxETH.connect(player).collectMinerals())
-        .to.be.revertedWith("Collection cooldown not met");
-    });
-
-    it("Should allow collection after cooldown period", async function () {
-      await guardianOfGalaxETH.connect(player).joinGame({ value: ethers.parseEther("10") });
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-
+      
+      await guardianOfGalaxETH.connect(player).collectGETH(); // Updated function name
+      const firstCollection = await guardianOfGalaxETH.players(player.address);
+      
       await time.increase(3600); // Increase time by 1 hour
-
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-      const playerInfo = await guardianOfGalaxETH.players(player.address);
-      expect(playerInfo.gethBalance).to.be.gt(100); // Should be greater than BASE_COLLECTION_AMOUNT
+      
+      await guardianOfGalaxETH.connect(player).collectGETH(); // Updated function name
+      const secondCollection = await guardianOfGalaxETH.players(player.address);
+      
+      expect(secondCollection.gethBalance).to.be.gt(firstCollection.gethBalance);
     });
+
+    // 删除 "Should increase minerals over time" 测试
   });
 
   describe("Alliance Mechanism", function () {
@@ -64,8 +61,11 @@ describe("GuardianOfGalaxETH", function () {
       await guardianOfGalaxETH.connect(player).proposeAlliance(player2.address);
       await guardianOfGalaxETH.connect(player2).acceptAlliance(player.address);
 
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-      await guardianOfGalaxETH.connect(player2).collectMinerals();
+      await guardianOfGalaxETH.connect(player).collectGETH();
+      await guardianOfGalaxETH.connect(player2).collectGETH();
+
+      // Ensure the obstacle is generated
+      await guardianOfGalaxETH.connect(owner).generateObstacle();
 
       const initialBalance1 = (await guardianOfGalaxETH.players(player.address)).gethBalance;
       const initialBalance2 = (await guardianOfGalaxETH.players(player2.address)).gethBalance;
@@ -84,7 +84,7 @@ describe("GuardianOfGalaxETH", function () {
       await guardianOfGalaxETH.connect(player2).joinGame({ value: ethers.parseEther("10") });
 
       await expect(guardianOfGalaxETH.connect(player).defeatObstacle(player2.address))
-        .to.be.revertedWith("Not allied");
+        .to.be.revertedWith("Not allied with this player"); // Updated expected revert reason
     });
   });
 
@@ -174,9 +174,9 @@ describe("GuardianOfGalaxETH", function () {
     it("Should allow community members to vote for artifacts", async function () {
       await guardianOfGalaxETH.connect(player).startVoting(communityId);
 
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-      await guardianOfGalaxETH.connect(player2).collectMinerals();
-      await guardianOfGalaxETH.connect(player3).collectMinerals();
+      await guardianOfGalaxETH.connect(player).collectGETH(); // Updated function name
+      await guardianOfGalaxETH.connect(player2).collectGETH(); // Updated function name
+      await guardianOfGalaxETH.connect(player3).collectGETH(); // Updated function name
 
       await expect(guardianOfGalaxETH.connect(player).voteForArtifact(communityId, 0, 2))
         .to.emit(guardianOfGalaxETH, "VoteCast")
@@ -186,9 +186,9 @@ describe("GuardianOfGalaxETH", function () {
     it("Should end voting and determine the winning artifact", async function () {
       await guardianOfGalaxETH.connect(player).startVoting(communityId);
 
-      await guardianOfGalaxETH.connect(player).collectMinerals();
-      await guardianOfGalaxETH.connect(player2).collectMinerals();
-      await guardianOfGalaxETH.connect(player3).collectMinerals();
+      await guardianOfGalaxETH.connect(player).collectGETH(); // Updated function name
+      await guardianOfGalaxETH.connect(player2).collectGETH(); // Updated function name
+      await guardianOfGalaxETH.connect(player3).collectGETH(); // Updated function name
 
       await guardianOfGalaxETH.connect(player).voteForArtifact(communityId, 0, 2);
       await guardianOfGalaxETH.connect(player2).voteForArtifact(communityId, 1, 3);

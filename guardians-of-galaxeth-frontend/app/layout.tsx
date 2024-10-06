@@ -4,8 +4,6 @@ import "./globals.css";
 
 const pixelifySans = Pixelify_Sans({
   subsets: ['latin'],
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
   variable: '--font-pixelify-sans',
 });
 
@@ -32,12 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${pixelifySans.variable} ${inter.variable} ${robotoMono.variable} font-sans antialiased bg-black text-white min-h-screen`}
-      >
-        {children}
-      </body>
+    <html lang="en" className={pixelifySans.variable}>
+      <body>{children}</body>
     </html>
   );
 }

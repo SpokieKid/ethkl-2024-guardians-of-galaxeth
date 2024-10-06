@@ -2,70 +2,55 @@
 
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import MolochBattle from './MolochBattle';
+import Image from 'next/image';
 
 interface FightProps {
-  address: string;
+  userIdentifier: string;
   contract: ethers.Contract | null;
+  gethBalance: number;
+  updateGethBalance: () => Promise<void>;
+  artifacts: Artifact[]; // 添加这一行
 }
 
 interface Artifact {
   id: number;
   name: string;
   power: number;
+  description: string;
 }
 
-export default function Fight({ address, contract }: FightProps) {
+export default function Fight({ userIdentifier, contract, gethBalance, updateGethBalance, artifacts }: FightProps) {
   const [communityPower, setCommunityPower] = useState(0);
-  const [molochPower, setMolochPower] = useState(0);
-  const [selectedArtifact, setSelectedArtifact] = useState<number | null>(null);
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
 
   useEffect(() => {
     const fetchBattleInfo = async () => {
-      if (contract) {
+      if (contract && userIdentifier) {
         try {
-          const communityId = await contract.playerCommunity(address);
-          const [, , totalStake] = await contract.getCommunityInfo(communityId);
-          setCommunityPower(ethers.utils.formatEther(totalStake));
-
-          const moloch = await contract.currentMoloch();
-          setMolochPower(moloch.attackPower.toNumber());
-
-          const artifactCount = await contract.getArtifactCount();
-          const artifactsData = await Promise.all(
-            Array(artifactCount.toNumber()).fill(0).map(async (_, index) => {
-              const artifact = await contract.artifacts(index);
-              return {
-                id: index,
-                name: artifact.name,
-                power: artifact.power.toNumber()
-              };
-            })
-          );
-          setArtifacts(artifactsData);
+          // Fetch community power (assuming it's equal to the player's GETH balance for simplicity)
+          setCommunityPower(Number(gethBalance));
         } catch (error) {
           console.error("Error fetching battle info:", error);
+          alert("Error fetching battle information. Please try again.");
         }
       }
     };
     fetchBattleInfo();
-  }, [contract, address]);
+  }, [contract, userIdentifier, gethBalance]);
 
   const handleSelectArtifact = (artifactId: number) => {
-    setSelectedArtifact(artifactId);
+    console.log("Selected artifact:", artifactId);
+    // You can add more logic here if needed
   };
 
-  const handleFightMoloch = async () => {
-    if (selectedArtifact === null || !contract) return;
+  const handleFightMoloch = async (molochId: number, artifactId: number) => {
+    if (!contract) return;
 
     try {
-      const tx = await contract.fightMoloch(selectedArtifact);
+      const tx = await contract.fightMoloch(molochId, artifactId);
       await tx.wait();
       alert("Battle completed! Check your updated balance and reputation.");
-      // Refresh battle info after fight
-      const moloch = await contract.currentMoloch();
-      setMolochPower(moloch.attackPower.toNumber());
-      setSelectedArtifact(null);
+      await updateGethBalance();
     } catch (error) {
       console.error("Error fighting Moloch:", error);
       alert("Failed to fight Moloch. Please try again.");
@@ -75,39 +60,24 @@ export default function Fight({ address, contract }: FightProps) {
   return (
     <div className="p-4 bg-deep-space-blue text-neon-yellow">
       <h2 className="text-2xl font-bold mb-4">Fight Moloch</h2>
-      <div className="mb-4">
-        <p>Community Power: {communityPower}</p>
-        <p>Moloch Power: {molochPower}</p>
+      <p className="mb-2">Your GETH Balance: {gethBalance}</p>
+      <div className="flex justify-center mb-4">
+        <Image
+          src="/moloch.png"
+          alt="Moloch"
+          width={100}
+          height={100}
+          className="pixelated moloch-animation"
+        />
       </div>
-      <div className="mb-4">
-        <h3 className="text-xl font-semibold mb-2">Select Artifact:</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {artifacts.map((artifact) => (
-            <button
-              key={artifact.id}
-              onClick={() => handleSelectArtifact(artifact.id)}
-              className={`p-2 rounded ${
-                selectedArtifact === artifact.id
-                  ? 'bg-neon-yellow text-deep-space-blue'
-                  : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {artifact.name} (Power: {artifact.power})
-            </button>
-          ))}
-        </div>
-      </div>
-      <button
-        onClick={handleFightMoloch}
-        disabled={selectedArtifact === null}
-        className={`w-full py-2 rounded font-bold ${
-          selectedArtifact !== null
-            ? 'bg-neon-yellow text-deep-space-blue hover:bg-yellow-400'
-            : 'bg-gray-500 cursor-not-allowed'
-        }`}
-      >
-        Fight Moloch
-      </button>
+      <MolochBattle
+        userIdentifier={userIdentifier}
+        communityPower={Number(communityPower)}
+        artifacts={artifacts}
+        contract={contract}
+        onSelectArtifact={handleSelectArtifact}
+        onFightMoloch={handleFightMoloch}
+      />
     </div>
   );
 }

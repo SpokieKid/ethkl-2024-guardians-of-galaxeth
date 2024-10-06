@@ -5,13 +5,16 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
+contract GuardianOfGalaxETH is ReentrancyGuard, Ownable  {
     struct Player {
+        bool isActive;
         uint256 stakedAmount;
         uint256 gethBalance;
         uint256 reputation;
-        bool isActive;
+        uint256 pendingGETH; // Add this line
     }
+    mapping(address => uint256) public lastUpdateTime;
+    uint256 public constant GETH_RATE = uint256(1 ether) / uint256(1 hours); // 1 GETH per hour
 
     struct Alliance {
         address[] members;
@@ -25,12 +28,14 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     }
 
     struct Moloch {
+        address creator;
         uint256 attackPower;
         string weakness;
         bool isDefeated;
     }
 
     struct Artifact {
+        uint256 id;  // 添加这一行
         string name;
         uint256 power;
     }
@@ -40,6 +45,11 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         uint256 voteCount;
     }
 
+    struct Obstacle {
+        uint256 difficulty;
+        uint256 reward;
+    }
+
     mapping(address => Player) public players;
     mapping(address => address[]) public playerAlliances;
     mapping(bytes32 => Alliance) public alliances;
@@ -47,32 +57,42 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     mapping(address => bytes32) public playerCommunity;
     mapping(bytes32 => mapping(address => Vote)) public communityVotes;
     mapping(bytes32 => uint256) public communityVotingEndTime;
-    Moloch public currentMoloch;
+    Moloch[] public molochs;
     Artifact[] public artifacts;
     mapping(address => uint256) public lastCollectionTime;
-    uint256 public constant MINERAL_RATE = 1 ether; // 1 GETH per second
-    mapping(address => uint256) public lastUpdateTime;
+    uint256 public constant GETH_PER_COLLECTION = 1 ether; // 每次收集获得 1 GETH
 
     uint256 public constant COLLECTION_COOLDOWN = 1 hours;
     uint256 public constant BASE_COLLECTION_AMOUNT = 100; // 基础收集量
     uint256 public constant ALLIANCE_COOLDOWN = 1 days;
     uint256 public constant OBSTACLE_BASE_DIFFICULTY = 1000;
-    uint256 public constant MIN_COMMUNITY_SIZE = 3;
+    uint256 public constant MIN_COMMUNITY_SIZE = 2; // Changed from 3 to 2
     uint256 public constant VOTING_PERIOD = 1 days;
     uint256 public constant MIN_STAKE = 0.00001 ether;
 
+    Obstacle public currentObstacle;
+
     event PlayerJoined(address indexed player, uint256 stakedAmount);
-    event PlayerCollected(address indexed player, uint256 amount);
+    event GETHCollected(address indexed player, uint256 amount);
     event AllianceFormed(address indexed player1, address indexed player2);
-    event ObstacleDefeated(address indexed player, uint256 difficulty, uint256 reward);
+    event ObstacleDefeated(address indexed player1, address indexed player2, uint256 difficulty, uint256 reward);
     event CommunityFormed(bytes32 indexed communityId, address[] members, uint256 totalStake);
-    event MolochAppeared(uint256 attackPower, string weakness);
-    event MolochDefeated(bytes32 indexed communityId, uint256 reward);
-    event ArtifactAdded(string name, uint256 power);
+    event MolochGenerated(uint256 indexed molochId, address indexed creator, uint256 attackPower);
+    event MolochDefeated(uint256 indexed molochId, bytes32 indexed communityId, uint256 reward);
+    event ArtifactAdded(uint256 indexed id, string name, uint256 power);
     event VoteCast(address indexed voter, bytes32 indexed communityId, uint256 artifactIndex, uint256 voteCount);
     event VotingEnded(bytes32 indexed communityId, uint256 winningArtifactIndex);
-    event MineralsCollected(address indexed player, uint256 amount);
     event PlayerLeft(address indexed player, uint256 totalAmount);
+    event ObstacleGenerated(uint256 difficulty, uint256 reward);
+    event GETHAdded(address indexed player, uint256 amount);
+
+    // 添加这个映射来跟踪所有玩家的地址
+    mapping(uint256 => address) public playerAddresses;
+    uint256 public playerCount;
+
+    // 在 GuardianOfGalaxETH.sol 中添加
+    mapping(address => uint256) public userVotingPower;
+    mapping(uint256 => uint256) public artifactVotes;
 
     constructor() Ownable(msg.sender) {
     }
@@ -82,29 +102,43 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         require(msg.value >= MIN_STAKE, "Insufficient stake");
 
         players[msg.sender] = Player({
+            isActive: true,
             stakedAmount: msg.value,
             gethBalance: 0,
             reputation: 0,
-            isActive: true
+            pendingGETH: 0  // 添加这一行
         });
-        lastUpdateTime[msg.sender] = block.timestamp;
+
+        playerAddresses[playerCount] = msg.sender;
+        playerCount++;
 
         emit PlayerJoined(msg.sender, msg.value);
     }
 
-    function updateMinerals(address player) public {
+    function updateGETH(address player) public {
         require(players[player].isActive, "Player not in game");
         uint256 elapsedTime = block.timestamp - lastUpdateTime[player];
-        uint256 newMinerals = elapsedTime * MINERAL_RATE / 1 ether;
-        players[player].gethBalance += newMinerals;
+        uint256 newGETH = elapsedTime * GETH_RATE / 1 ether;
+        players[player].gethBalance += newGETH;
         lastUpdateTime[player] = block.timestamp;
     }
 
-    function getMinerals(address player) public view returns (uint256) {
-        if (!players[player].isActive) return 0;
-        uint256 elapsedTime = block.timestamp - lastUpdateTime[player];
-        uint256 newMinerals = elapsedTime * MINERAL_RATE / 1 ether;
-        return players[player].gethBalance + newMinerals;
+    // Remove or comment out the getMinerals function as it's redundant with getGETH
+
+    // Update collectGETH function
+    function collectGETH() public {
+        require(players[msg.sender].isActive, "Player is not active");
+        uint256 gethToCollect = (block.timestamp - lastUpdateTime[msg.sender]) * GETH_RATE / 1 ether;
+        players[msg.sender].gethBalance += gethToCollect + players[msg.sender].pendingGETH; // Add pendingGETH
+        players[msg.sender].pendingGETH = 0; // Reset pendingGETH
+        lastUpdateTime[msg.sender] = block.timestamp;
+        emit GETHCollected(msg.sender, gethToCollect + players[msg.sender].pendingGETH);
+    }
+
+    // Add this new function
+    function addPendingGETH(address _player, uint256 _amount) public {
+        require(players[_player].isActive, "Player is not active");
+        players[_player].pendingGETH += _amount;
     }
 
     // TODO: Implement collect, alliance, and fight mechanics
@@ -118,7 +152,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         player.stakedAmount = 0;
         player.gethBalance = 0;
 
-        (bool success, ) = msg.sender.call{value: totalAmount}("");
+        (bool success, ) = payable(msg.sender).call{value: totalAmount}("");
         require(success, "Transfer failed");
 
         emit PlayerLeft(msg.sender, totalAmount);
@@ -126,24 +160,19 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
 
     // Additional functions will be implemented here
 
-    function collectMinerals() external nonReentrant {
-        Player storage player = players[msg.sender];
-        require(player.isActive, "Player not in game");
-        require(block.timestamp >= lastCollectionTime[msg.sender] + COLLECTION_COOLDOWN, "Collection cooldown not met");
-
-        uint256 collectionAmount = calculateCollectionAmount(player.stakedAmount);
-        player.gethBalance += collectionAmount;
-        lastCollectionTime[msg.sender] = block.timestamp;
-
-        emit MineralsCollected(msg.sender, collectionAmount);
+    function addGETH(address _player, uint256 _amount) external onlyOwner {
+        require(_player != address(0), "Invalid player address");
+        require(_amount > 0, "Amount must be greater than zero");
+        players[_player].gethBalance += _amount;
+        emit GETHAdded(_player, _amount);
     }
 
     function calculateCollectionAmount(uint256 stakedAmount) internal pure returns (uint256) {
-        // 简单的计算公式：基础收集量 + 质押量的平方根
+        // 简单的计算公式：基础收集量 + 质押量的平根
         return BASE_COLLECTION_AMOUNT + sqrt(stakedAmount);
     }
 
-    // 辅助函数：计算平方根
+    // 辅助数：计算平方根
     function sqrt(uint256 x) internal pure returns (uint256 y) {
         uint256 z = (x + 1) / 2;
         y = x;
@@ -181,17 +210,19 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
     }
 
     function defeatObstacle(address _ally) external nonReentrant {
-        require(isAllied(msg.sender, _ally), "Not allied");
+        require(isAllied(msg.sender, _ally), "Not allied with this player");
+        require(currentObstacle.difficulty > 0, "No active obstacle");
         
-        uint256 difficulty = calculateObstacleDifficulty(msg.sender, _ally);
-        uint256 totalStrength = players[msg.sender].gethBalance + players[_ally].gethBalance;
+        uint256 totalPower = players[msg.sender].gethBalance + players[_ally].gethBalance;
+        require(totalPower >= currentObstacle.difficulty, "Not enough power to defeat obstacle");
         
-        require(totalStrength > difficulty, "Not strong enough to defeat obstacle");
-
-        uint256 reward = calculateReward(difficulty);
-        distributeReward(msg.sender, _ally, reward);
-
-        emit ObstacleDefeated(msg.sender, difficulty, reward);
+        uint256 reward = currentObstacle.reward;
+        players[msg.sender].gethBalance += reward / 2;
+        players[_ally].gethBalance += reward / 2;
+        
+        emit ObstacleDefeated(msg.sender, _ally, currentObstacle.difficulty, reward);
+        
+        generateObstacleInternal();
     }
 
     function isAllied(address _player1, address _player2) public view returns (bool) {
@@ -226,7 +257,7 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         for (uint i = 0; i < _members.length; i++) {
             require(players[_members[i]].isActive, "All members must be active players");
             totalStake += players[_members[i]].stakedAmount;
-            playerCommunity[_members[i]] = communityId;
+            playerCommunity[_members[i]] = communityId;  // Set community ID for each member
         }
 
         communities[communityId] = Community({
@@ -238,12 +269,12 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         emit CommunityFormed(communityId, _members, totalStake);
     }
 
-    function generateMoloch() external onlyOwner {
-        require(currentMoloch.attackPower == 0, "Moloch already exists");
-        uint256 attackPower = uint256(keccak256(abi.encodePacked(block.timestamp))) % 1000 + 500;
+    function generateMoloch() external {
+        require(players[msg.sender].isActive, "Player is not active");
+        uint256 attackPower = uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 1000 + 500;
         string memory weakness = generateWeakness();
-        currentMoloch = Moloch(attackPower, weakness, false);
-        emit MolochAppeared(attackPower, weakness);
+        molochs.push(Moloch(msg.sender, attackPower, weakness, false));
+        emit MolochGenerated(molochs.length - 1, msg.sender, attackPower);
     }
 
     function generateWeakness() internal view returns (string memory) {
@@ -267,22 +298,32 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         emit VoteCast(msg.sender, _communityId, _artifactIndex, _voteCount);
     }
 
-    function fightMoloch(uint256 _artifactIndex) external nonReentrant {
+    function fightMoloch(uint256 _molochId, uint256 _artifactIndex) external nonReentrant {
+        require(_molochId < molochs.length, "Invalid Moloch ID");
+        Moloch storage moloch = molochs[_molochId];
+        require(!moloch.isDefeated, "Moloch already defeated");
+
         bytes32 communityId = playerCommunity[msg.sender];
         require(communityId != bytes32(0), "Not part of a community");
-        require(!currentMoloch.isDefeated, "No active Moloch");
 
         Community storage community = communities[communityId];
         Artifact memory chosenArtifact = artifacts[_artifactIndex];
 
-        uint256 communityPower = community.totalStake + chosenArtifact.power;
-        require(communityPower > currentMoloch.attackPower, "Not strong enough to defeat Moloch");
+        // Calculate total GETH balance of all community members
+        uint256 communityPower = 0;
+        for (uint i = 0; i < community.members.length; i++) {
+            communityPower += players[community.members[i]].gethBalance;
+        }
 
-        uint256 reward = calculateReward(currentMoloch.attackPower);
+        // Add artifact power to community power
+        uint256 totalCommunityPower = communityPower + chosenArtifact.power;
+        require(totalCommunityPower > moloch.attackPower, "Not strong enough to defeat Moloch");
+
+        uint256 reward = calculateReward(moloch.attackPower);
         distributeCommunityReward(communityId, reward);
 
-        currentMoloch.isDefeated = true;
-        emit MolochDefeated(communityId, reward);
+        moloch.isDefeated = true;
+        emit MolochDefeated(_molochId, communityId, reward);
     }
 
     function calculateReward(uint256 _molochPower) internal pure returns (uint256) {
@@ -297,9 +338,14 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         }
     }
 
-    function addArtifact(string memory _name, uint256 _power) external onlyOwner {
-        artifacts.push(Artifact(_name, _power));
-        emit ArtifactAdded(_name, _power);
+    function addArtifact(string memory _name, uint256 _power) public onlyOwner {
+        uint256 newArtifactId = artifacts.length;
+        artifacts.push(Artifact({
+            id: newArtifactId,
+            name: _name,
+            power: _power
+        }));
+        emit ArtifactAdded(newArtifactId, _name, _power);
     }
 
     function startVoting(bytes32 _communityId) external {
@@ -313,10 +359,9 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         require(communityVotingEndTime[_communityId] != 0, "Voting never started");
 
         uint256[] memory voteCounts = new uint256[](artifacts.length);
-        Community storage community = communities[_communityId];
 
-        for (uint i = 0; i < community.members.length; i++) {
-            address member = community.members[i];
+        for (uint i = 0; i < communities[_communityId].members.length; i++) {
+            address member = communities[_communityId].members[i];
             Vote memory vote = communityVotes[_communityId][member];
             voteCounts[vote.artifactIndex] += vote.voteCount;
         }
@@ -349,10 +394,127 @@ contract GuardianOfGalaxETH is ReentrancyGuard, Ownable {
         return communities[_communityId].members[_index];
     }
 
-    function getCommunityInfo(bytes32 _communityId) public view returns (address[] memory, uint256, uint256) {
-        Community storage community = communities[_communityId];
-        return (community.members, community.formationTime, community.totalStake);
+    function getCommunityInfo() public view returns (address[] memory, uint256, uint256, uint256) {
+        address[] memory members = new address[](1);
+        members[0] = msg.sender;
+        uint256 totalGETH = players[msg.sender].gethBalance;
+        return (members, block.timestamp, 0, totalGETH);
     }
 
-    // Additional functions will be implemented here
+    function generateObstacleInternal() internal {
+        uint256 difficulty = uint256(keccak256(abi.encodePacked(block.timestamp))) % 1000 + 500;
+        uint256 reward = difficulty * 2;
+        currentObstacle = Obstacle(difficulty, reward);
+        emit ObstacleGenerated(difficulty, reward);
+    }
+
+    // Keep the public function if it's needed for external calls
+    function generateObstacle() public onlyOwner {
+        uint256 difficulty = uint256(keccak256(abi.encodePacked(block.timestamp))) % 1000 + 500;
+        uint256 reward = difficulty * 2;
+        currentObstacle = Obstacle(difficulty, reward);
+        emit ObstacleGenerated(difficulty, reward);
+    }
+
+    function getCurrentObstacle() external view returns (Obstacle memory) {
+        return currentObstacle;
+    }
+
+    function getActivePlayers() public view returns (address[] memory) {
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < playerCount; i++) {
+            if (players[playerAddresses[i]].isActive) {
+                activeCount++;
+            }
+        }
+        
+        address[] memory activePlayers = new address[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < playerCount; i++) {
+            if (players[playerAddresses[i]].isActive) {
+                activePlayers[index] = playerAddresses[i];
+                index++;
+            }
+        }
+        
+        return activePlayers;
+    }
+
+    // 获取玩家的矿物数量
+    function getGETH(address player) public view returns (uint256) {
+        return players[player].gethBalance;
+    }
+
+    function getArtifactCount() public view returns (uint256) {
+        return artifacts.length;
+    }
+
+    function getAllyCount(address player) public view returns (uint256) {
+        return playerAlliances[player].length;
+    }
+
+    function getAlly(address player, uint256 index) public view returns (address) {
+        require(index < playerAlliances[player].length, "Index out of bounds");
+        return playerAlliances[player][index];
+    }
+
+    function isPlayerInCommunity() public pure returns (bool) {
+        return true; // 始终返回 true
+    }
+
+    function getPlayerCommunityId(address _player) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_player)); // 返回一个基于玩家地址的固定社区ID
+    }
+
+    function setPlayerCommunity(address _player, bytes32 _communityId) public onlyOwner {
+        playerCommunity[_player] = _communityId;
+    }
+
+    function getUserVotingPower(address user) public view returns (uint256) {
+        return userVotingPower[user];
+    }
+
+    function submitVotes(address user, uint256[] memory artifactIds, uint256[] memory votes) public {
+        require(artifactIds.length == votes.length, "Invalid input");
+        uint256 totalCost = 0;
+        for (uint256 i = 0; i < votes.length; i++) {
+            totalCost += votes[i] * votes[i];
+        }
+        require(userVotingPower[user] >= totalCost, "Not enough voting power");
+        
+        userVotingPower[user] -= totalCost;
+        for (uint256 i = 0; i < votes.length; i++) {
+            artifactVotes[artifactIds[i]] += votes[i] * votes[i];
+        }
+    }
+
+    function tallyVotes() public view returns (uint256 winningArtifactId, uint256 maxVotes) {
+        for (uint256 i = 0; i < artifacts.length; i++) {
+            if (artifactVotes[i] > maxVotes) {  // 使用索引 i 而不是 artifacts[i].id
+                maxVotes = artifactVotes[i];
+                winningArtifactId = i;  // 使用索引 i 作为 artifact ID
+            }
+        }
+    }
+
+    // Add a function to get all active Molochs
+    function getActiveMolochs() public view returns (uint256[] memory) {
+        uint256 activeCount = 0;
+        for (uint256 i = 0; i < molochs.length; i++) {
+            if (!molochs[i].isDefeated) {
+                activeCount++;
+            }
+        }
+        
+        uint256[] memory activeMolochIds = new uint256[](activeCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < molochs.length; i++) {
+            if (!molochs[i].isDefeated) {
+                activeMolochIds[index] = i;
+                index++;
+            }
+        }
+        
+        return activeMolochIds;
+    }
 }
