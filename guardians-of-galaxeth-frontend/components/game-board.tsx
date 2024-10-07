@@ -179,7 +179,12 @@ export default function GameBoard({ userIdentifier, initialStage, contract, pend
             allies={allies}
           />
         )}
-        {stage === 'alliance' && <Alliance userIdentifier={userIdentifier} contract={contract} />}
+        {stage === 'alliance' && (
+          <Alliance 
+            userIdentifier={userIdentifier} 
+            contract={contract} 
+          />
+        )}
         {stage === 'fight' && (
           <Fight 
             userIdentifier={userIdentifier} 

@@ -19,7 +19,10 @@ export default function Alliance({ userIdentifier, contract }: AllianceProps) {
 
   useEffect(() => {
     const fetchAllies = async () => {
-      if (contract) {
+      console.log("Fetching allies. userIdentifier:", userIdentifier);
+      console.log("Contract:", contract);
+
+      if (contract && userIdentifier) {
         try {
           console.log("Fetching allies for:", userIdentifier);
           // 获取盟友数量
@@ -47,6 +50,8 @@ export default function Alliance({ userIdentifier, contract }: AllianceProps) {
             console.error("Error data:", error.data);
           }
         }
+      } else {
+        console.log("Contract or userIdentifier is not available");
       }
     };
     fetchAllies();

@@ -43,8 +43,13 @@ export default function Home() {
   }, [contract, userIdentifier]);
 
   const handleLoginSuccess = (worldIdHash: string, walletAddress: string) => {
+    console.log("Login successful. World ID Hash:", worldIdHash);
+    console.log("Login successful. Wallet address:", walletAddress);
     setIsLoggedIn(true);
     setUserIdentifier(walletAddress);
+  
+    // 添加这行来确认状态更新
+    console.log("Updated userIdentifier:", walletAddress);
   };
 
   const handleJoinGame = async () => {
@@ -87,6 +92,8 @@ export default function Home() {
             setPendingGETH={setPendingGETH}
             isInCommunity={isInCommunity}
           />
+          console.log("Page rendering GameBoard. userIdentifier:", userIdentifier);
+          console.log("Page contract:", contract);
         </div>
       )}
     </div>
