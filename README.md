@@ -6,4 +6,3 @@ In the game, you must form alliances with other players and build communities. W
 
 On a universal scale, **Guardian of galaxETH** simulates the process of Ethereum constantly upgrading and iterating to become stronger and more resilient.
 
-Hackathon Project
